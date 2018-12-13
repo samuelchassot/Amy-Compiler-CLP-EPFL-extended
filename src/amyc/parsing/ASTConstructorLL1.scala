@@ -250,21 +250,27 @@ class ASTConstructorLL1 extends ASTConstructor {
 
   }
 
-  override def constructCase(pTree: NodeOrLeaf[Token]): MatchCase = {
+  override def constructCase(pTree: NodeOrLeaf[Token]): (MatchCase, Option[List[ClassOrFunDef]]) = {
     pTree match {
       case Node('Case ::= _, List(Leaf(ct), pat, _, expr)) =>
-        MatchCase(constructPattern(pat), constructExpr(expr)).setPos(ct)
+        val (e, f) = constructExpr(expr)
+        (MatchCase(constructPattern(pat), e).setPos(ct), f)
     }
   }
 
-  def constructCases(ptree : NodeOrLeaf[Token]) : List[MatchCase] ={
+  def constructCases(ptree : NodeOrLeaf[Token]) : (List[MatchCase], Option[List[ClassOrFunDef]]) ={
     ptree match{
       case Node('Cases ::= _, List(caseTree, casesOpt)) => {
         casesOpt match{
           case Node('CasesOpt ::= List(), List()) =>
-            constructCase(caseTree) :: Nil
+            val (c, f) = constructCase(caseTree)
+            (c :: Nil, f)
           case Node('CasesOpt ::= List('Cases), List(casesTree)) =>
-            constructCase(caseTree) :: constructCases(casesTree)
+            val (c1, f1) = constructCase(caseTree)
+            val (c2, f2) = constructCases(casesTree)
+            val lf = f1.getOrElse(Nil) ++ f2.getOrElse(Nil)
+            val f = if(lf.isEmpty) None else Some(lf)
+            (c1 :: c2, f)
         }
       }
 
