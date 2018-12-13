@@ -41,10 +41,14 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructStartVal(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructStartVal(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('StartVal ::= (VAL() :: _), List(Leaf(vt), param, _, valueTree, _, expr)) =>
-        Let(constructParam(param), constructExprLvl02(valueTree), constructExpr(expr)).setPos(vt)
+        val valueExprAndDef = constructExprLvl02(valueTree)
+        val exprExprAndDef = constructExpr(expr)
+        val optDefsList : List[ClassOrFunDef] = valueExprAndDef._2.getOrElse(Nil) ++ exprExprAndDef._2.getOrElse(Nil)
+        val optDefs = if(optDefsList.isEmpty) None else Some(optDefsList)
+        (Let(constructParam(param),valueExprAndDef._1 , exprExprAndDef._1).setPos(vt), optDefs)
     }
   }
 
