@@ -34,7 +34,7 @@ class ASTConstructorLL1 extends ASTConstructor {
   }
 
   @Override
-  override def constructExpr(ptree: NodeOrLeaf[Token]): NominalTreeModule.Expr = {
+  override def constructExpr(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
     ptree match {
       case Node('Expr ::= List('StartVal), List(startValTree)) => constructStartVal(startValTree)
       case Node('Expr ::= List('lvl01), List(lvl01)) => constructExprLvl01(lvl01)

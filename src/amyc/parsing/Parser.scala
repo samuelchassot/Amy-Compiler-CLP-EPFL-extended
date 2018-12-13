@@ -54,7 +54,6 @@ object Parser extends Pipeline[Stream[Token], Program] {
     'Id ::= IDSENT
   ))
 
-  // TODO: Write a grammar that implements the correct syntax of Amy and is LL1.
   // You can start from the example above and work your way from there.
   // Make sure you use the warning (see `run` below) that tells you which part is not in LL1.
   lazy val amyGrammarLL1 = Grammar('Program, List[Rules[Token]](
@@ -129,9 +128,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
   ))
 
   def run(ctx: Context)(tokens: Stream[Token]): Program = {
-    // TODO: Switch to LL1 when you are ready
     val (grammar, constructor) = (amyGrammarLL1, new ASTConstructorLL1)
-    //val (grammar, constructor) = (amyGrammar, new ASTConstructor)
 
     import ctx.reporter._
     implicit val gc = new GlobalContext()
