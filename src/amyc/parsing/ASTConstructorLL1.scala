@@ -318,5 +318,10 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
+  def toOpionalList(o1 : Option[List[ClassOrFunDef]], o2 : Option[List[ClassOrFunDef]]) : Option[List[ClassOrFunDef]] = {
+    val l = o1.getOrElse(Nil) ++ o2.getOrElse(Nil)
+    if(l.isEmpty) None else Some(l)
+  }
+
 }
 
