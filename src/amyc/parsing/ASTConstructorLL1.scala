@@ -13,7 +13,6 @@ import amyc.ast.NominalTreeModule
 // override whatever has changed. You can look into ASTConstructor as an example.
 class ASTConstructorLL1 extends ASTConstructor {
 
-  @Override
   override def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned) = {
     pTree match {
       case Node('QName ::= _, List(id, opt)) => {
@@ -33,7 +32,6 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  @Override
   override def constructExpr(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('Expr ::= List('StartVal), List(startValTree)) => constructStartVal(startValTree)
@@ -223,7 +221,6 @@ class ASTConstructorLL1 extends ASTConstructor {
   }
 
 
-  @Override
   override def constructPattern(pTree: NodeOrLeaf[Token]): NominalTreeModule.Pattern = {
     pTree match {
       case Node('Pattern ::= List(UNDERSCORE()), List(Leaf(ut))) =>
@@ -262,7 +259,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
   }
 
-  override def constructCase(pTree: NodeOrLeaf[Token]): (MatchCase, Option[List[ClassOrFunDef]]) = {
+  def constructCase(pTree: NodeOrLeaf[Token]): (MatchCase, Option[List[ClassOrFunDef]]) = {
     pTree match {
       case Node('Case ::= _, List(Leaf(ct), pat, _, expr)) =>
         val (e, f) = constructExpr(expr)
@@ -287,7 +284,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  override def constructList1[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
+  def constructList1[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
     ptree match {
       case Node(_, List(t)) => List(constructor(t))
       case Node(_, List(t, ts)) =>
