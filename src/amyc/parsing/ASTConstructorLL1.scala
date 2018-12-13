@@ -46,7 +46,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('StartVal ::= (VAL() :: _), List(Leaf(vt), param, _, valueTree, _, expr)) =>
         val valueExprAndDef = constructExprLvl02(valueTree)
         val exprExprAndDef = constructExpr(expr)
-        (Let(constructParam(param),valueExprAndDef._1 , exprExprAndDef._1).setPos(vt), toOpionalList(valueExprAndDef._2, exprExprAndDef._2))
+        (Let(constructParam(param),valueExprAndDef._1 , exprExprAndDef._1).setPos(vt), toOptionalList(valueExprAndDef._2, exprExprAndDef._2))
     }
   }
 
@@ -59,11 +59,11 @@ class ASTConstructorLL1 extends ASTConstructor {
             lvl01optoptTree match {
               case Node('lvl01optopt ::= List('StartVal), List(startValTree)) => {
                 val expr2 = constructStartVal(startValTree)
-                (Sequence(expr1._1, expr2._1).setPos(expr1._1), toOpionalList(expr1._2, expr2._2))
+                (Sequence(expr1._1, expr2._1).setPos(expr1._1), toOptionalList(expr1._2, expr2._2))
               }
               case Node('lvl01optopt ::= List('lvl01), List(lvl01Tree)) => {
                 val expr2 = constructExprLvl01(lvl01Tree)
-                (Sequence(expr1._1, expr2._1).setPos(expr1._1), toOpionalList(expr1._2, expr2._2))
+                (Sequence(expr1._1, expr2._1).setPos(expr1._1), toOptionalList(expr1._2, expr2._2))
               }
             }
           case Node('lvl01opt ::= List(), List()) =>
@@ -80,7 +80,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           case Node('lvl02opt ::= (MATCH() :: _), List(Leaf(mt), _, casesTree, _)) =>
             val (e, fe) = constructExprLvl03(lvl03Tree)
             val (c, fc) = constructCases(casesTree)
-            (Match(e, c), toOpionalList(fe, fc))
+            (Match(e, c), toOptionalList(fe, fc))
           case Node('lvl02opt ::= List(), List()) =>
             constructExprLvl03(lvl03Tree)
         }
@@ -153,13 +153,13 @@ class ASTConstructorLL1 extends ASTConstructor {
   def constructExprLvl10(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl10 ::= (IF() :: _), List(Leaf(it), _, cond, _, _, thenn, _, _, _, elze, _)) =>
-        Ite(
-          constructExpr(cond),
-          constructExpr(thenn),
-          constructExpr(elze)
-        ).setPos(it)
+        val (c, fc) = constructExpr(cond)
+        val (t, ft) = constructExpr(thenn)
+        val (e, fe) = constructExpr(elze)
+        (Ite(c, t, e).setPos(it), toOptionalList(toOptionalList(fc, ft), fe))
       case Node('lvl10 ::= (ERROR() :: _), List(Leaf(ert), _, msg, _)) =>
-        Error(constructExpr(msg)).setPos(ert)
+        val (m, fm) = constructExpr(msg)
+        (Error(m).setPos(ert), fm)
       case Node('lvl10 ::= List('Id, 'IdExprOpt), List(id, idOpt)) => {
         idOpt match {
           case Node('IdExprOpt ::= ('QNameOpt :: _), List(qnameopt, _, argsTree, _)) => {
@@ -169,13 +169,15 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, namePos) = constructName(nameTree)
                 val qname = QualifiedName(Some(module), name)
                 val args = constructList(argsTree, constructExpr, hasComma = true)
-                Call(qname, args).setPos(modPos)
+                (Call(qname, args.map(_._1)).setPos(modPos),
+                  args.foldLeft(None : Option[List[ClassOrFunDef]])((acc, a) => toOptionalList(acc, a._2)))
               }
               case Node('QNameOpt ::= List(), List()) => {
                 val (name, namePos) = constructName(id)
                 val qname = QualifiedName(None, name)
                 val args = constructList(argsTree, constructExpr, hasComma = true)
-                Call(qname, args).setPos(namePos)
+                (Call(qname, args.map(_._1)).setPos(namePos),
+                  args.foldLeft(None : Option[List[ClassOrFunDef]])((acc, a) => toOptionalList(acc, a._2)))
               }
             }
           }
@@ -202,6 +204,8 @@ class ASTConstructorLL1 extends ASTConstructor {
             }
           }
         }
+
+      case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
     }
   }
 
@@ -276,7 +280,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           case Node('CasesOpt ::= List('Cases), List(casesTree)) =>
             val (c1, f1) = constructCase(caseTree)
             val (c2, f2) = constructCases(casesTree)
-            (c1 :: c2, toOpionalList(f1, f2))
+            (c1 :: c2, toOptionalList(f1, f2))
         }
       }
 
@@ -324,7 +328,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def toOpionalList(o1 : Option[List[ClassOrFunDef]], o2 : Option[List[ClassOrFunDef]]) : Option[List[ClassOrFunDef]] = {
+  def toOptionalList(o1 : Option[List[ClassOrFunDef]], o2 : Option[List[ClassOrFunDef]]) : Option[List[ClassOrFunDef]] = {
     val l = o1.getOrElse(Nil) ++ o2.getOrElse(Nil)
     if(l.isEmpty) None else Some(l)
   }
