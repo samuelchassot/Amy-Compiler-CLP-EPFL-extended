@@ -59,11 +59,11 @@ class ASTConstructorLL1 extends ASTConstructor {
             lvl01optoptTree match {
               case Node('lvl01optopt ::= List('StartVal), List(startValTree)) => {
                 val expr2 = constructStartVal(startValTree)
-                Sequence(expr1, expr2).setPos(expr1)
+                (Sequence(expr1._1, expr2._1).setPos(expr1._1), toOpionalList(expr1._2, expr2._2))
               }
               case Node('lvl01optopt ::= List('lvl01), List(lvl01Tree)) => {
                 val expr2 = constructExprLvl01(lvl01Tree)
-                Sequence(expr1, expr2).setPos(expr1)
+                (Sequence(expr1._1, expr2._1).setPos(expr1._1), toOpionalList(expr1._2, expr2._2))
               }
             }
           case Node('lvl01opt ::= List(), List()) =>
@@ -187,7 +187,8 @@ class ASTConstructorLL1 extends ASTConstructor {
                 //Literal unit value
                 (UnitLiteral().setPos(rpt), None)
               case Node('ParenOpt ::= List('Expr, RPAREN()), List(expr, Leaf(rpt))) => {
-                constructExpr(expr).setPos(rpt)
+                val (e, f) = constructExpr(expr)
+                (e.setPos(rpt), f)
               }
             }
           }
