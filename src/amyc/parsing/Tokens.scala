@@ -31,6 +31,8 @@ object Tokens {
   case class TRUE()     extends Token
   case class UNIT()     extends Token
   case class VAL()      extends Token
+  case class FOR()      extends Token
+  case class IN()       extends Token
 
   /* Operators */
   case class SEMICOLON()  extends Token // ;
@@ -58,6 +60,8 @@ object Tokens {
   case class EQSIGN()     extends Token // =
   case class RARROW()     extends Token // =>
   case class UNDERSCORE() extends Token // _
+  case class LBRACK()     extends Token // [
+  case class RBRACK()     extends Token // ]
 
   // Identifiers
   case class ID(value: String) extends Token with TerminalClass
