@@ -34,7 +34,7 @@ class ASTConstructorLL1 extends ASTConstructor {
   }
 
   @Override
-  override def constructExpr(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  override def constructExpr(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('Expr ::= List('StartVal), List(startValTree)) => constructStartVal(startValTree)
       case Node('Expr ::= List('lvl01), List(lvl01)) => constructExprLvl01(lvl01)
@@ -52,7 +52,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructExprLvl01(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl01(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl01 ::= _, List(lvl02Tree, lvl01optTree)) => {
         lvl01optTree match {
@@ -75,7 +75,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructExprLvl02(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl02(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl02 ::= List('lvl03, 'lvl02opt), List(lvl03Tree, lvl02optTree)) => {
         lvl02optTree match {
@@ -88,7 +88,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructExprLvl03(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl03(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl03 ::= _, List(lvl04Tree, lvl03Opt)) =>
         val (e1, f1) = constructExprLvl04(lvl04Tree)
@@ -96,42 +96,42 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructExprLvl04(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl04(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl04 ::= _, List(lvl05Tree, lvl04Opt)) =>
         constructOpExpr(constructExprLvl05(lvl05Tree), lvl04Opt, constructExprLvl05)
     }
   }
 
-  def constructExprLvl05(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl05(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl05 ::= _, List(lvl06Tree, lvl05Opt)) =>
         constructOpExpr(constructExprLvl06(lvl06Tree), lvl05Opt, constructExprLvl06)
     }
   }
 
-  def constructExprLvl06(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl06(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl06 ::= _, List(lvl07Tree, lvl06Opt)) =>
         constructOpExpr(constructExprLvl07(lvl07Tree), lvl06Opt, constructExprLvl07)
     }
   }
 
-  def constructExprLvl07(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl07(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl07 ::= _, List(lvl08Tree, lvl07Opt)) =>
         constructOpExpr(constructExprLvl08(lvl08Tree), lvl07Opt, constructExprLvl08)
     }
   }
 
-  def constructExprLvl08(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl08(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl08 ::= _, List(lvl09Tree, lvl08Opt)) =>
         constructOpExpr(constructExprLvl09(lvl09Tree), lvl08Opt, constructExprLvl09)
     }
   }
 
-  def constructExprLvl09(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl09(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl09 ::= List(BANG(), 'lvl10), List(Leaf(bt), lvl10Tree)) =>
         Not(constructExprLvl10(lvl10Tree))
@@ -143,7 +143,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructExprLvl10(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[ClassOrFunDef]) = {
+  def constructExprLvl10(ptree: NodeOrLeaf[Token]): (NominalTreeModule.Expr, Option[List[ClassOrFunDef]]) = {
     ptree match {
       case Node('lvl10 ::= (IF() :: _), List(Leaf(it), _, cond, _, _, thenn, _, _, _, elze, _)) =>
         Ite(
