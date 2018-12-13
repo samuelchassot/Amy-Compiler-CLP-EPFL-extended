@@ -185,6 +185,8 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
         case '=' if(nextChar == '>') => useTwo(RARROW())
         case '=' => useOne(EQSIGN())
         case '_' => useOne(UNDERSCORE())
+        case '[' => useOne(LBRACK())
+        case ']' => useOne(RBRACK())
 
         case _ => {
           ctx.reporter.error("Character not recognized", currentPos)
