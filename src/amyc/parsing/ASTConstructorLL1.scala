@@ -311,16 +311,17 @@ class ASTConstructorLL1 extends ASTConstructor {
   // with correct associativity.
   // If ptree is empty, it means we have no more operators and the leftopd is returned.
   // Note: You may have to override constructOp also, depending on your implementation
-  def constructOpExpr(leftopd: Expr, ptree: NodeOrLeaf[Token], constrFun: NodeOrLeaf[Token] => (Expr, Option[List[ClassOrFunDef]]): Expr = {
-    ptree match {
+  def constructOpExpr(leftopd: Expr, ptree: (NodeOrLeaf[Token], Option[List[ClassOrFunDef]]),
+                      constrFun: NodeOrLeaf[Token] => (Expr, Option[List[ClassOrFunDef]])): (Expr, Option[List[ClassOrFunDef]]) = {
+    ptree._1 match {
       case Node(_, List()) => //epsilon rule of the nonterminals
-        leftopd
+        (leftopd, ptree._2)
       case Node(sym ::= _, List(op, rightNode))
         if Set('lvl03opt, 'lvl04opt, 'lvl05opt, 'lvl06opt, 'lvl07opt, 'lvl08opt) contains sym =>
         rightNode match {
           case Node(_, List(nextOpd, optExpr)) => // 'Expr? ::= Expr? ~ 'OpExpr,
             val nextAtom = constrFun(nextOpd)
-            constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), optExpr, constrFun) // captures left associativity
+            constructOpExpr(constructOp(op)(leftopd, nextAtom._1).setPos(leftopd), (optExpr, toOptionalList(ptree._2, nextAtom._2)), constrFun) // captures left associativity
         }
     }
   }

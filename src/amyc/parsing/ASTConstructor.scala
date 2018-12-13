@@ -87,7 +87,7 @@ class ASTConstructor {
     }
   }
 
-  abstract def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned)
+  def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned)
 
 
   def tokenToExpr(t: Token): (Expr, Expr) => Expr = {
