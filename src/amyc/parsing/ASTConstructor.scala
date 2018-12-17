@@ -9,6 +9,7 @@ import Tokens._
 // Will construct Amy trees from grammarcomp parse Trees.
 // Corresponds to Parser.msGrammar
 abstract class ASTConstructor {
+  protected var currentModule: String = ""
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
@@ -23,6 +24,7 @@ abstract class ASTConstructor {
     pTree match {
       case Node('ModuleDef ::= _, List(Leaf(obj), name, _, defs, optExpr, _, _)) =>
         val modName = constructName(name)._1
+        currentModule = modName
         val constructedOption = constructOption(optExpr, constructExpr)
         ModuleDef(
           modName,
