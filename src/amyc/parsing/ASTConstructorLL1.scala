@@ -204,6 +204,39 @@ class ASTConstructorLL1 extends ASTConstructor {
         }
 
       case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
+        listCompr match {
+          case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listId, optionalIf, Leaf(rbr))) => {
+            val name = newFunName()
+            val qnameNil = QualifiedName(Some("L"), "Nil")
+            val qnameCons = QualifiedName(Some("L"), "Cons")
+            val qnameList = QualifiedName(Some("L"), "List")
+            optionalIf match{
+              case Node('OptionalIf ::= List(IF() :: _ ), List(_, _, cond, Leaf(rpr))) =>
+                (Call(QualifiedName(None, name), List(constructExpr(listId)._1)).setPos(rbr),
+                  Some(
+                    FunDef(
+                      name,
+                      List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
+                      constructType(L.List),
+                      Match(Variable("xs"),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern("i"), IdPattern("tail"))), UnitLiteral()),
+                          MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
+                  ).setPos(lbr)))
+              case Node('OptionalIf ::= List(), List()) =>
+                (Call(QualifiedName(None, name), List(constructExpr(listId)._1)).setPos(rbr),
+                  Some(
+                    FunDef(
+                      name,
+                      List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
+                      constructType(L.List),
+                      Match(Variable("xs"),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern("i"), IdPattern("tail"))), UnitLiteral()),
+                          MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
+                  ).setPos(lbr)))
+            }
+          }
+        }
+
     }
   }
 
