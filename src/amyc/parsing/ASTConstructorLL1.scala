@@ -13,6 +13,15 @@ import amyc.ast.NominalTreeModule
 // override whatever has changed. You can look into ASTConstructor as an example.
 class ASTConstructorLL1 extends ASTConstructor {
 
+  object FunctionId{
+    private var index = 1
+    def fresh(): String = {
+      val name = "++listComprDesuggar" + index
+      index += 1
+      name
+    }
+  }
+
   override def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned) = {
     pTree match {
       case Node('QName ::= _, List(id, opt)) => {
