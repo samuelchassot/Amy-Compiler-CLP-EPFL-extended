@@ -236,7 +236,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
                       TypeTree(ClassType(qnameList)),
                       Match(Variable("xs"),
-                        List(MatchCase(CaseClassPattern(qnameCons, List(constructPattern(internId), IdPattern("tail"))),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
                             Ite(constructExpr(cond)._1,
                               Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
                               Call(QualifiedName(None, name), List(Variable("tail"))))),
@@ -250,7 +250,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
                       TypeTree(ClassType(qnameList)),
                       Match(Variable("xs"),
-                        List(MatchCase(CaseClassPattern(qnameCons, List(constructPattern(internId), IdPattern("tail"))),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
                             Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail")))))),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
                   ).setPos(lbr))))
@@ -264,7 +264,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       def ++listComprDesuggar1(x1: L.List) = {
 
         x1 match {
-          case L.Cons(i, tail) => val id1 : Int = i; if(cond) L.Cons(expr, ++listComprDesuggar1(tail)) else ++listComprDesuggar1(tail)
+          case L.Cons(id1, tail) => if(cond) L.Cons(expr, ++listComprDesuggar1(tail)) else ++listComprDesuggar1(tail)
           case L.Nil() => L.Nil()
         }
       }

@@ -22,9 +22,10 @@ abstract class ASTConstructor {
   def constructModule(pTree: NodeOrLeaf[Token]): ModuleDef = {
     pTree match {
       case Node('ModuleDef ::= _, List(Leaf(obj), name, _, defs, optExpr, _, _)) =>
+        val modName = constructName(name)._1
         val constructedOption = constructOption(optExpr, constructExpr)
         ModuleDef(
-          constructName(name)._1,
+          modName,
           constructList(defs, constructDef).flatten ::: constructedOption._2.getOrElse(Some(Nil)).getOrElse(Nil),
           constructedOption._1
         ).setPos(obj)
