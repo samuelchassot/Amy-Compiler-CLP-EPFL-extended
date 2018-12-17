@@ -90,7 +90,8 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl03 ::= _, List(lvl04Tree, lvl03Opt)) =>
         val (e, f) = constructExprLvl04(lvl04Tree)
-        (constructOpExpr(e , lvl03Opt, constructExprLvl04), f)
+        val leftAssociated = constructOpExpr(e , lvl03Opt, None, constructExprLvl04)
+        (leftAssociated._1, toOptionalList(leftAssociated._2, f))
     }
   }
 
@@ -98,7 +99,8 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl04 ::= _, List(lvl05Tree, lvl04Opt)) =>
         val (e, f) = constructExprLvl05(lvl05Tree)
-        (constructOpExpr(e, lvl04Opt, constructExprLvl05), f)
+        val leftAssociated = constructOpExpr(e, lvl04Opt, None, constructExprLvl05)
+        (leftAssociated._1, toOptionalList(leftAssociated._2, f))
     }
   }
 
@@ -106,7 +108,8 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl05 ::= _, List(lvl06Tree, lvl05Opt)) =>
         val (e, f) = constructExprLvl06(lvl06Tree)
-        (constructOpExpr(e, lvl05Opt, constructExprLvl06), f)
+        val leftAssociated = constructOpExpr(e, lvl05Opt, None, constructExprLvl06)
+        (leftAssociated._1, toOptionalList(leftAssociated._2, f))
     }
   }
 
@@ -114,7 +117,8 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl06 ::= _, List(lvl07Tree, lvl06Opt)) =>
         val (e, f) = constructExprLvl07(lvl07Tree)
-        (constructOpExpr(e, lvl06Opt, constructExprLvl07), f)
+        val leftAssociated = constructOpExpr(e, lvl06Opt, None, constructExprLvl07)
+        (leftAssociated._1, toOptionalList(leftAssociated._2, f))
     }
   }
 
@@ -122,7 +126,9 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl07 ::= _, List(lvl08Tree, lvl07Opt)) =>
         val (e, f) = constructExprLvl08(lvl08Tree)
-        (constructOpExpr(e, lvl07Opt, constructExprLvl08), f)
+        val leftAssociated = constructOpExpr(e, lvl07Opt, None, constructExprLvl08)
+        (leftAssociated._1, toOptionalList(leftAssociated._2, f))
+
     }
   }
 
@@ -130,7 +136,9 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl08 ::= _, List(lvl09Tree, lvl08Opt)) =>
         val (e, f) = constructExprLvl09(lvl09Tree)
-        (constructOpExpr(e, lvl08Opt, constructExprLvl09), f)
+        val leftAssociated = constructOpExpr(e, lvl08Opt, None, constructExprLvl09)
+        (leftAssociated._1, toOptionalList(leftAssociated._2, f))
+
     }
   }
 
@@ -203,7 +211,6 @@ class ASTConstructorLL1 extends ASTConstructor {
           }
         }
 
-      case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
     }
   }
 
@@ -284,15 +291,15 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructList1[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
-    ptree match {
-      case Node(_, List(t)) => List(constructor(t))
-      case Node(_, List(t, ts)) =>
-        constructor(t) :: constructList1(ts, constructor, hasComma)
-      case Node(_, List(t, Leaf(COMMA()), ts)) if hasComma =>
-        constructor(t) :: constructList1(ts, constructor, hasComma)
-    }
-  }
+//  override def constructList1[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
+//    ptree match {
+//      case Node(_, List(t)) => List(constructor(t))
+//      case Node(_, List(t, ts)) =>
+//        constructor(t) :: constructList1(ts, constructor, hasComma)
+//      case Node(_, List(t, Leaf(COMMA()), ts)) if hasComma =>
+//        constructor(t) :: constructList1(ts, constructor, hasComma)
+//    }
+//  }
 
 
   override def constructOp(ptree: NodeOrLeaf[Token]): (Expr, Expr) => Expr = {
@@ -311,17 +318,17 @@ class ASTConstructorLL1 extends ASTConstructor {
   // with correct associativity.
   // If ptree is empty, it means we have no more operators and the leftopd is returned.
   // Note: You may have to override constructOp also, depending on your implementation
-  def constructOpExpr(leftopd: Expr, ptree: (NodeOrLeaf[Token], Option[List[ClassOrFunDef]]),
+  def constructOpExpr(leftopd: Expr, ptree: NodeOrLeaf[Token], defs: Option[List[ClassOrFunDef]],
                       constrFun: NodeOrLeaf[Token] => (Expr, Option[List[ClassOrFunDef]])): (Expr, Option[List[ClassOrFunDef]]) = {
-    ptree._1 match {
+    ptree match {
       case Node(_, List()) => //epsilon rule of the nonterminals
-        (leftopd, ptree._2)
+        (leftopd, defs)
       case Node(sym ::= _, List(op, rightNode))
         if Set('lvl03opt, 'lvl04opt, 'lvl05opt, 'lvl06opt, 'lvl07opt, 'lvl08opt) contains sym =>
         rightNode match {
           case Node(_, List(nextOpd, optExpr)) => // 'Expr? ::= Expr? ~ 'OpExpr,
             val nextAtom = constrFun(nextOpd)
-            constructOpExpr(constructOp(op)(leftopd, nextAtom._1).setPos(leftopd), (optExpr, toOptionalList(ptree._2, nextAtom._2)), constrFun) // captures left associativity
+            constructOpExpr(constructOp(op)(leftopd, nextAtom._1).setPos(leftopd), optExpr, toOptionalList(defs, nextAtom._2), constrFun) // captures left associativity
         }
     }
   }

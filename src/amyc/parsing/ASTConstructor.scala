@@ -8,7 +8,7 @@ import Tokens._
 
 // Will construct Amy trees from grammarcomp parse Trees.
 // Corresponds to Parser.msGrammar
-class ASTConstructor {
+abstract class ASTConstructor {
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
@@ -22,10 +22,11 @@ class ASTConstructor {
   def constructModule(pTree: NodeOrLeaf[Token]): ModuleDef = {
     pTree match {
       case Node('ModuleDef ::= _, List(Leaf(obj), name, _, defs, optExpr, _, _)) =>
+        val constructedOption = constructOption(optExpr, constructExpr)
         ModuleDef(
           constructName(name)._1,
-          constructList(defs, constructDef),
-          constructOption(optExpr, constructExpr)
+          constructList(defs, constructDef).flatten ::: constructedOption._2.getOrElse(Some(Nil)).getOrElse(Nil),
+          constructedOption._1
         ).setPos(obj)
     }
   }
@@ -37,30 +38,33 @@ class ASTConstructor {
     }
   }
 
-  def constructDef(pTree: NodeOrLeaf[Token]): ClassOrFunDef = {
+  def constructDef(pTree: NodeOrLeaf[Token]): List[ClassOrFunDef] = {
     pTree match {
       case Node('Definition ::= _, List(df)) =>
         constructDef0(df)
     }
   }
 
-  def constructDef0(pTree: NodeOrLeaf[Token]): ClassOrFunDef = {
+  def constructDef0(pTree: NodeOrLeaf[Token]): List[ClassOrFunDef] = {
     pTree match {
       case Node('AbstractClassDef ::= _, List(Leaf(abs), _, name)) =>
-        AbstractClassDef(constructName(name)._1).setPos(abs)
+        List(AbstractClassDef(constructName(name)._1).setPos(abs))
       case Node('CaseClassDef ::= _, List(Leaf(cse), _, name, _, params, _, _, parent)) =>
-        CaseClassDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true).map(_.tt),
-          constructName(parent)._1
-        ).setPos(cse)
+        List(
+            CaseClassDef(
+            constructName(name)._1,
+            constructList(params, constructParam, hasComma = true).map(_.tt),
+            constructName(parent)._1
+          ).setPos(cse)
+        )
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        val (constrBody, newDefs) = constructExpr(body)
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
-          constructExpr(body)
-        ).setPos(df)
+          constrBody
+        ).setPos(df) :: newDefs.getOrElse(Nil)
     }
   }
 
@@ -113,7 +117,7 @@ class ASTConstructor {
         tokenToExpr(t)
     }
   }
-  abstract def constructExpr(ptree: NodeOrLeaf[Token]): (Expr, Option[List[ClassOrFunDef]])
+  def constructExpr(ptree: NodeOrLeaf[Token]): (Expr, Option[List[ClassOrFunDef]])
 
   def constructLiteral(pTree: NodeOrLeaf[Token]): Literal[_] = {
     pTree match {
@@ -130,7 +134,7 @@ class ASTConstructor {
     }
   }
 
-  abstract def constructCase(pTree: NodeOrLeaf[Token]): (MatchCase, Option[List[ClassOrFunDef]])
+  def constructCase(pTree: NodeOrLeaf[Token]): (MatchCase, Option[List[ClassOrFunDef]])
 
   def constructPattern(pTree: NodeOrLeaf[Token]): Pattern = {
     pTree match {
@@ -205,11 +209,12 @@ class ASTConstructor {
     * @tparam A The type of the element
     * @return The element wrapped in Some(), or None if the production is empty.
     */
-  def constructOption[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A): Option[A] = {
+  def constructOption[A, B](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => (A, B)): (Option[A], Option[B]) = {
     ptree match {
-      case Node(_, List()) => None
+      case Node(_, List()) => (None, None)
       case Node(_, List(t)) =>
-        Some(constructor(t))
+        val constr = constructor(t)
+        (Some(constr._1), Some(constr._2))
     }
   }
 
