@@ -223,7 +223,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
         listCompr match {
           case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listId, optionalIf, Leaf(rbr))) => {
-            val name = newFunName()
+            val name = FunctionId.fresh()
             val qnameNil = QualifiedName(Some("L"), "Nil")
             val qnameCons = QualifiedName(Some("L"), "Cons")
             val qnameList = QualifiedName(Some("L"), "List")
@@ -236,7 +236,10 @@ class ASTConstructorLL1 extends ASTConstructor {
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
                       TypeTree(ClassType(qnameList)),
                       Match(Variable("xs"),
-                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern("i"), IdPattern("tail"))), UnitLiteral()),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(constructPattern(internId), IdPattern("tail"))),
+                            Ite(constructExpr(cond)._1,
+                              Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
+                              Call(QualifiedName(None, name), List(Variable("tail"))))),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
                   ).setPos(lbr))))
               case Node('OptionalIf ::= List(), List()) =>
@@ -247,7 +250,8 @@ class ASTConstructorLL1 extends ASTConstructor {
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
                       TypeTree(ClassType(qnameList)),
                       Match(Variable("xs"),
-                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern("i"), IdPattern("tail"))), UnitLiteral()),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(constructPattern(internId), IdPattern("tail"))),
+                            Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail")))))),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
                   ).setPos(lbr))))
             }
