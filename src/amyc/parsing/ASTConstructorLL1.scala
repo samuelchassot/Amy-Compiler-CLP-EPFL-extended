@@ -258,6 +258,18 @@ class ASTConstructorLL1 extends ASTConstructor {
           }
         }
 
+      /*
+      [ expr for id1 in id2 if(cond) ] ==>> ++listComprDesuggar1(id2)
+
+      def ++listComprDesuggar1(x1: L.List) = {
+
+        x1 match {
+          case L.Cons(i, tail) => val id1 : Int = i; if(cond) L.Cons(expr, ++listComprDesuggar1(tail)) else ++listComprDesuggar1(tail)
+          case L.Nil() => L.Nil()
+        }
+      }
+        */
+
     }
   }
 
