@@ -34,7 +34,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           }
           case Node('QNameOpt ::= _, List()) => {
             val (name, pos) = constructName(id)
-            (QualifiedName(None, name), pos);
+            (QualifiedName(None, name), pos)
           }
         }
       }
