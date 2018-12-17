@@ -214,25 +214,25 @@ class ASTConstructorLL1 extends ASTConstructor {
               case Node('OptionalIf ::= List(IF() :: _ ), List(_, _, cond, Leaf(rpr))) =>
                 (Call(QualifiedName(None, name), List(constructExpr(listId)._1)).setPos(rbr),
                   Some(
-                    FunDef(
+                    List(FunDef(
                       name,
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
-                      constructType(L.List),
+                      TypeTree(ClassType(qnameList)),
                       Match(Variable("xs"),
                         List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern("i"), IdPattern("tail"))), UnitLiteral()),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
-                  ).setPos(lbr)))
+                  ).setPos(lbr))))
               case Node('OptionalIf ::= List(), List()) =>
                 (Call(QualifiedName(None, name), List(constructExpr(listId)._1)).setPos(rbr),
                   Some(
-                    FunDef(
+                    List(FunDef(
                       name,
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
-                      constructType(L.List),
+                      TypeTree(ClassType(qnameList)),
                       Match(Variable("xs"),
                         List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern("i"), IdPattern("tail"))), UnitLiteral()),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
-                  ).setPos(lbr)))
+                  ).setPos(lbr))))
             }
           }
         }
