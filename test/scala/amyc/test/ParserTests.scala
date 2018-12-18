@@ -3,7 +3,7 @@ package amyc.test
 import amyc.parsing._
 import org.junit.Test
 
-class ParserTests extends TestSuite with amyc.MainHelpers {
+class $$ParserTests extends TestSuite with amyc.MainHelpers {
   val pipeline = Lexer andThen Parser andThen treePrinterN("")
 
   val baseDir = "parser"
