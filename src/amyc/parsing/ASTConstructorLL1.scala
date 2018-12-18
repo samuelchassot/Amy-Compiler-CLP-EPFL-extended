@@ -222,17 +222,18 @@ class ASTConstructorLL1 extends ASTConstructor {
 
       case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
         listCompr match {
-          case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listId, optionalIf, Leaf(rbr))) => {
+          case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
             val name = FunctionId.fresh()
             val qnameNil = QualifiedName(Some("L"), "Nil")
             val qnameCons = QualifiedName(Some("L"), "Cons")
             val qnameList = QualifiedName(Some("L"), "List")
             val qnameNewFunction = QualifiedName(Some(currentModule), name)
-            val varListAsArg = Variable(constructName(listId)._1)
+            val (listAsArg, fList) = constructExpr(listExpr)
+
             optionalIf match{
               case Node('OptionalIf ::= List(), List()) =>
-                (Call(qnameNewFunction, List(varListAsArg)).setPos(rbr),
-                  Some(
+                (Call(qnameNewFunction, List(listAsArg)).setPos(rbr),
+                  toOptionalList(Some(
                     List(FunDef(
                       name,
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
@@ -241,11 +242,11 @@ class ASTConstructorLL1 extends ASTConstructor {
                         List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
                             Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail")))))),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
-                  ).setPos(lbr))))
+                  ).setPos(lbr))), fList))
 
               case Node('OptionalIf ::= _, List(_, cond))=>
-                (Call(qnameNewFunction, List(varListAsArg)).setPos(rbr),
-                  Some(
+                (Call(qnameNewFunction, List(listAsArg)).setPos(rbr),
+                  toOptionalList(Some(
                     List(FunDef(
                       name,
                       List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
@@ -256,7 +257,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                             Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
                             Call(QualifiedName(None, name), List(Variable("tail"))))),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
-                    ).setPos(lbr))))
+                    ).setPos(lbr))), fList ))
             }
           }
         }
