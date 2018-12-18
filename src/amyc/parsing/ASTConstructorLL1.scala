@@ -13,6 +13,15 @@ import amyc.ast.NominalTreeModule
 // override whatever has changed. You can look into ASTConstructor as an example.
 class ASTConstructorLL1 extends ASTConstructor {
 
+  object FunctionId{
+    private var index = 1
+    def fresh(): String = {
+      val name = "++listComprDesuggar" + index
+      index += 1
+      name
+    }
+  }
+
   override def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned) = {
     pTree match {
       case Node('QName ::= _, List(id, opt)) => {
@@ -25,7 +34,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           }
           case Node('QNameOpt ::= _, List()) => {
             val (name, pos) = constructName(id)
-            (QualifiedName(None, name), pos);
+            (QualifiedName(None, name), pos)
           }
         }
       }
@@ -210,6 +219,60 @@ class ASTConstructorLL1 extends ASTConstructor {
             }
           }
         }
+
+      case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
+        listCompr match {
+          case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
+            val name = FunctionId.fresh()
+            val qnameNil = QualifiedName(Some("L"), "Nil")
+            val qnameCons = QualifiedName(Some("L"), "Cons")
+            val qnameList = QualifiedName(Some("L"), "List")
+            val qnameNewFunction = QualifiedName(Some(currentModule), name)
+            val (listAsArg, fList) = constructExpr(listExpr)
+
+            optionalIf match{
+              case Node('OptionalIf ::= List(), List()) =>
+                (Call(qnameNewFunction, List(listAsArg)).setPos(rbr),
+                  toOptionalList(Some(
+                    List(FunDef(
+                      name,
+                      List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
+                      TypeTree(ClassType(qnameList)),
+                      Match(Variable("xs"),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
+                            Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail")))))),
+                          MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
+                  ).setPos(lbr))), fList))
+
+              case Node('OptionalIf ::= _, List(_, cond))=>
+                (Call(qnameNewFunction, List(listAsArg)).setPos(rbr),
+                  toOptionalList(Some(
+                    List(FunDef(
+                      name,
+                      List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
+                      TypeTree(ClassType(qnameList)),
+                      Match(Variable("xs"),
+                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
+                          Ite(constructExpr(cond)._1,
+                            Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
+                            Call(QualifiedName(None, name), List(Variable("tail"))))),
+                          MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
+                    ).setPos(lbr))), fList ))
+            }
+          }
+        }
+
+      /*
+      [ expr for id1 in id2 if(cond) ] ==>> ++listComprDesuggar1(id2)
+
+      def ++listComprDesuggar1(x1: L.List) = {
+
+        x1 match {
+          case L.Cons(id1, tail) => if(cond) L.Cons(expr, ++listComprDesuggar1(tail)) else ++listComprDesuggar1(tail)
+          case L.Nil() => L.Nil()
+        }
+      }
+        */
 
     }
   }

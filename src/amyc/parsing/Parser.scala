@@ -63,8 +63,8 @@ object Parser extends Pipeline[Stream[Token], Program] {
     'lvl10 ::= IF() ~ LPAREN() ~ 'Expr ~ RPAREN() ~ LBRACE() ~ 'Expr ~ RBRACE() ~ ELSE() ~ LBRACE() ~ 'Expr ~ RBRACE() |
                     ERROR() ~ LPAREN() ~ 'Expr ~ RPAREN() |
                     'Id ~ 'IdExprOpt | 'LiteralWithoutUnit | 'Parenthesized | 'ListCompr,
-    'ListCompr ::= LBRACK() ~ 'Expr ~ FOR() ~ 'Id ~ IN() ~ 'Id ~ 'OptionalIf ~ RBRACK(),
-    'OptionalIf ::= epsilon() | IF() ~ LPAREN() ~ 'Expr ~ RPAREN(),
+    'ListCompr ::= LBRACK() ~ 'Expr ~ FOR() ~ 'Id ~ IN() ~ 'Expr ~ 'OptionalIf ~ RBRACK(),
+    'OptionalIf ::= epsilon() | IF() ~ 'Expr,
     'Parenthesized ::= LPAREN() ~ 'ParenOpt,
     'ParenOpt ::= 'Expr ~ RPAREN() | RPAREN(),
 

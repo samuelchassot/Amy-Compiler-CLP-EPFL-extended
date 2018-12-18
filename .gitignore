@@ -10,3 +10,4 @@ compiler/node_modules
 compiler/package-lock.json
 .idea/*
 .idea
+wasmout/*
