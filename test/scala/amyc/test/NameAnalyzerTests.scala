@@ -40,4 +40,7 @@ class NameAnalyzerTests extends TestSuite {
   @Test def testParamAndLocal = shouldOutput("ParamAndLocal")
 
   @Test def testArgumentNumberFunction = shouldFail("ArgumentNumberFunction")
+  @Test def testListComprExpr = shouldFail("ListComprExpr")
+  @Test def testListComprId = shouldFail("ListComprId")
+  @Test def testListComprIf = shouldFail("ListComprIf")
 }
