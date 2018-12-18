@@ -228,9 +228,10 @@ class ASTConstructorLL1 extends ASTConstructor {
             val qnameCons = QualifiedName(Some("L"), "Cons")
             val qnameList = QualifiedName(Some("L"), "List")
             val qnameNewFunction = QualifiedName(Some(currentModule), name)
+            val varListAsArg = Variable(constructName(listId)._1)
             optionalIf match{
               case Node('OptionalIf ::= List(IF() :: _ ), List(_, _, cond, Leaf(rpr))) =>
-                (Call(qnameNewFunction, List(constructExpr(listId)._1)).setPos(rbr),
+                (Call(qnameNewFunction, List(varListAsArg)).setPos(rbr),
                   Some(
                     List(FunDef(
                       name,
@@ -244,7 +245,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
                   ).setPos(lbr))))
               case Node('OptionalIf ::= List(), List()) =>
-                (Call(qnameNewFunction, List(constructExpr(listId)._1)).setPos(rbr),
+                (Call(qnameNewFunction, List(varListAsArg)).setPos(rbr),
                   Some(
                     List(FunDef(
                       name,
