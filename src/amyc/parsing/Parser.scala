@@ -64,7 +64,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
                     ERROR() ~ LPAREN() ~ 'Expr ~ RPAREN() |
                     'Id ~ 'IdExprOpt | 'LiteralWithoutUnit | 'Parenthesized | 'ListCompr,
     'ListCompr ::= LBRACK() ~ 'Expr ~ FOR() ~ 'Id ~ IN() ~ 'Id ~ 'OptionalIf ~ RBRACK(),
-    'OptionalIf ::= epsilon() | IF() ~ LPAREN() ~ 'Expr ~ RPAREN(),
+    'OptionalIf ::= epsilon() | IF() ~ 'Expr,
     'Parenthesized ::= LPAREN() ~ 'ParenOpt,
     'ParenOpt ::= 'Expr ~ RPAREN() | RPAREN(),
 

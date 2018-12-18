@@ -243,7 +243,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
                   ).setPos(lbr))))
 
-              case Node('OptionalIf ::= _, List(_, _, cond, Leaf(rpr))) =>
+              case Node('OptionalIf ::= _, List(_, cond))=>
                 (Call(qnameNewFunction, List(varListAsArg)).setPos(rbr),
                   Some(
                     List(FunDef(
