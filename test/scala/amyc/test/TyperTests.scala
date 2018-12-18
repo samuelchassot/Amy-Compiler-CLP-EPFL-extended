@@ -22,6 +22,9 @@ class TyperTests extends TestSuite {
   val outputExt = "" // No output files for typechecking
 
   @Test def testArithError1 = shouldFail("ArithError1")
+  @Test def testListComprNotInt = shouldFail("ListComprNotInt")
+  @Test def testListComprNotList = shouldFail("ListComprNotList")
+  @Test def testListComprNotBooleanIf = shouldFail("ListComprNotBooleanIf")
 
   @Test def testArithmetic = shouldPass("Arithmetic")
 }
