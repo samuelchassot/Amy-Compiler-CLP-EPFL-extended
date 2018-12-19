@@ -35,19 +35,17 @@ def generateFunction(lists : List[(Id, Id)], newArgs: List[Id]) : List[ClassOrFu
 			val rests : List[ClassOrFunDef] = generateFunction(tail, head._1 :: newArgs)
 
 			new FunDef(
-				def fun1(lists.map(_._2).map(toParamDef), newArgs.map(toParamDef)) : List ={
+				def fun1(lists.map(_._2).map(toParamDef), newArgs.map(toParamDef)) : List = {
 					xs match{
 						case Cons(lists.head._1, tail) => Concat(call rests.head(tail.map(._2) :: lists.head._1 :: newArgs ), fun1(tail, newArgs.map(toParamDef))
 					}
+				}
 			) :: rests
 
 		}
 	}
 	
-	}
 }
-
-
 
 object main {
 	val x = 3
