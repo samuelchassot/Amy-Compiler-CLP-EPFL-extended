@@ -22,6 +22,15 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
+  object ListId{
+    private var index = 1
+    def fresh(): String = {
+      val name = "--ListId" + index
+      index += 1
+      name
+    }
+  }
+
   override def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned) = {
     pTree match {
       case Node('QName ::= _, List(id, opt)) => {
@@ -222,7 +231,18 @@ class ASTConstructorLL1 extends ASTConstructor {
 
       case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
         listCompr match {
-          case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
+          case Node('ListCompr ::= _, List(Leaf(lbr), expr, forIn, optionalForIn, optionalIf, Leaf(rbr))) =>
+            var forIns : List[(String, String, Expr)] = Nil
+
+            forIn match {
+              case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
+                val listId = ListId.fresh()
+                forIns = List((constructName(id)._1, listId, constructExpr(listExpr)._1))
+            }
+
+            forIns = forIns ::: fors(optionalForIn)
+
+          /*case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
             val name = FunctionId.fresh()
             val qnameNil = QualifiedName(Some("L"), "Nil")
             val qnameCons = QualifiedName(Some("L"), "Cons")
@@ -258,11 +278,11 @@ class ASTConstructorLL1 extends ASTConstructor {
                             Call(QualifiedName(None, name), List(Variable("tail"))))),
                           MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
                     ).setPos(lbr))), fList ))
-            }
+            }*/
           }
         }
 
-      /*
+      /* Fun base :
       [ expr for id1 in id2 if(cond) ] ==>> ++listComprDesuggar1(id2)
 
       def ++listComprDesuggar1(x1: L.List) = {
@@ -275,7 +295,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         */
 
     }
-  }
+
 
   override def constructLiteral(pTree: NodeOrLeaf[Token]): Literal[_] = {
     pTree match {
@@ -399,6 +419,10 @@ class ASTConstructorLL1 extends ASTConstructor {
   def toOptionalList(o1 : Option[List[ClassOrFunDef]], o2 : Option[List[ClassOrFunDef]]) : Option[List[ClassOrFunDef]] = {
     val l = o1.getOrElse(Nil) ++ o2.getOrElse(Nil)
     if(l.isEmpty) None else Some(l)
+  }
+
+  def fors(optionalForIns : NodeOrLeaf[Token]) : List[(String, String, Expr)] = {
+
   }
 
 }
