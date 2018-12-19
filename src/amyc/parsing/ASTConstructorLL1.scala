@@ -5,7 +5,7 @@ import grammarcomp.parsing._
 import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
-import amyc.ast.NominalTreeModule
+import amyc.ast.{Identifier, NominalTreeModule}
 
 // Implements the translation from parse trees to ASTs for the LL1 grammar,
 // that is, this should correspond to Parser.amyGrammarLL1.
@@ -240,9 +240,20 @@ class ASTConstructorLL1 extends ASTConstructor {
                 }
 
             val (otherFors, fOtherFor) = fors(optionalForIn)
-            val forIns : List[(String, String, Expr)] = firstFor :: otherFors
-            
+            val (forIns : List[(String, String, Expr)], fForIns) = (firstFor :: otherFors, toOptionalList(fFirstFor, fOtherFor))
 
+            val firstFunName = FunctionId.fresh()
+            val qnameFirstFun = QualifiedName(Some(currentModule), firstFunName)
+
+            val otherFuns =
+              optionalIf match {
+                case Node('OptionalIf ::= List(), List()) =>
+                  generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, Nil, Some(firstFunName), None)
+                case Node('OptionalIf ::= _, List(_, cond))=>
+                  generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, Nil, Some(firstFunName), Some(constructExpr(cond)._1))
+              }
+
+            (Call(qnameFirstFun, forIns.map(_._3)).setPos(rbr), toOptionalList(fForIns, Some(otherFuns)))
           /*case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
             val name = FunctionId.fresh()
             val qnameNil = QualifiedName(Some("L"), "Nil")
@@ -295,7 +306,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       }
         */
 
-    }
+  }
 
 
   override def constructLiteral(pTree: NodeOrLeaf[Token]): Literal[_] = {
@@ -436,5 +447,60 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
+  def generateFunctions(lists: List[(String, String)], newArgs: List[String], firstName: Option[String], cond : Option[Expr]) : List[ClassOrFunDef] = {
+    lists match{
+      case head :: Nil => List(funBase(head._2, newArgs, firstName, cond))
+      case head :: tail => {
+        Nil
+        //val rests : List[ClassOrFunDef] = generateFunction(tail, head._1 :: newArgs)
+        //val curr : ClassOrFunDef =
+
+        //curr :: rests
+
+        /*new FunDef(
+        def fun1(lists.map(_._2).map(toParamDef), newArgs.map(toParamDef)) : List = {
+          xs match{
+            case Cons(lists.head._1, tail) => Concat(call rests.head(tail.map(._2) :: lists.head._1 :: newArgs ), fun1(tail, newArgs.map(toParamDef))
+          }
+        } :: rests */
+
+      }
+    }
+  }
+
+  def funBase(list: String, argsId: List[String], firstName : Option[String], cond : Option[Expr]) : ClassOrFunDef = {
+    val name = firstName match {
+      case None => FunctionId.fresh()
+      case Some(n) => n
+    }
+
+    /*cond match {
+      case None =>
+          FunDef(
+              name,
+              List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
+              TypeTree(ClassType(qnameList)),
+              Match(Variable("xs"),
+                List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
+                  Ite(constructExpr(cond)._1,
+                    Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
+                    Call(QualifiedName(None, name), List(Variable("tail"))))),
+                  MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
+            )
+      case Some(condExpr) =>
+        FunDef(
+          name,
+          List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
+          TypeTree(ClassType(qnameList)),
+          Match(Variable("xs"),
+            List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
+              Ite(constructExpr(cond)._1,
+                Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
+                Call(QualifiedName(None, name), List(Variable("tail"))))),
+              MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
+        )
+
+    }*/
+  }
 }
 
