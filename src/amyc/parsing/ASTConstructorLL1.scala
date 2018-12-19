@@ -232,15 +232,16 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
         listCompr match {
           case Node('ListCompr ::= _, List(Leaf(lbr), expr, forIn, optionalForIn, optionalIf, Leaf(rbr))) =>
-            var forIns : List[(String, String, Expr)] = Nil
+            val (firstFor : (String, String, Expr), fFirstFor) = forIn match {
+                  case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
+                    val listId = ListId.fresh()
+                    val (list, fList) = constructExpr(listExpr)
+                    ((constructName(id)._1, listId, list), fList)
+                }
 
-            forIn match {
-              case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
-                val listId = ListId.fresh()
-                forIns = List((constructName(id)._1, listId, constructExpr(listExpr)._1))
-            }
-
-            forIns = forIns ::: fors(optionalForIn)
+            val (otherFors, fOtherFor) = fors(optionalForIn)
+            val forIns : List[(String, String, Expr)] = firstFor :: otherFors
+            
 
           /*case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
             val name = FunctionId.fresh()
@@ -421,8 +422,18 @@ class ASTConstructorLL1 extends ASTConstructor {
     if(l.isEmpty) None else Some(l)
   }
 
-  def fors(optionalForIns : NodeOrLeaf[Token]) : List[(String, String, Expr)] = {
-
+  def fors(optionalForIns : NodeOrLeaf[Token]) : (List[(String, String, Expr)], Option[List[ClassOrFunDef]]) = {
+    optionalForIns match {
+      case Node('OptionalForIns ::= List(), List()) => (Nil, None)
+      case Node('OptionalForIns ::= List('ForIn, 'OptionalForIns), List(curr, tail)) =>
+        curr match {
+          case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
+            val listId = ListId.fresh()
+            val (list, fList) = constructExpr(listExpr)
+            val (rest, frest) =  fors(tail)
+            ((constructName(id)._1, listId, list) :: rest , toOptionalList(fList,frest))
+        }
+    }
   }
 
 }
