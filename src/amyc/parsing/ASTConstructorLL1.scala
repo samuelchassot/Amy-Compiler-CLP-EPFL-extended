@@ -507,5 +507,47 @@ class ASTConstructorLL1 extends ASTConstructor {
 
     }
   }
+
+  /**
+    * take a list of Variables which corresponds to the Variable defined after for keywords and expr and returns the
+    * new Variables that need to be taken as param in the given expr
+    * @param known
+    * @param expr
+    * @return
+    */
+  def newVariables(known: List[Variable], expr: Expr): List[Variable] = {
+    expr match {
+      case v@Variable(name) => if(known.filter(p => p.name == name).isEmpty) List(v) else Nil
+
+      case Plus(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Minus(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Times(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Div(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Mod(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case LessThan(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case LessEquals(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case And(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Or(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Equals(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Concat(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Not(e) => newVariables(known, e)
+      case Neg(e) => newVariables(known, e)
+
+      case Call(qname, args) => args.flatMap(a => newVariables(known, a))
+
+      case Sequence(e1, e2) => newVariables(known, e1) ::: newVariables(known, e2)
+
+      case Let(df, value, body) => newVariables(known, body)
+
+      case Ite(cond, thenn, elze) => newVariables(known, cond) ::: newVariables(known, thenn) ::: newVariables(known, elze)
+
+      case Match(scrut, cases) => newVariables(known, scrut) ::: cases.flatMap(c => newVariables(known, c.expr))
+
+      case Error(msg) => newVariables(known, msg)
+
+      case _ => Nil
+
+    }
+  }
 }
 
