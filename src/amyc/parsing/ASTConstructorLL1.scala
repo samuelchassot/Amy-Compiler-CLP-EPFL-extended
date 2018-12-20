@@ -242,9 +242,6 @@ class ASTConstructorLL1 extends ASTConstructor {
             val (otherFors, fOtherFor) = fors(optionalForIn)
             val (forIns : List[(String, String, Expr)], fForIns) = (firstFor :: otherFors, toOptionalList(fFirstFor, fOtherFor))
 
-            val firstFunName = FunctionId.fresh()
-            val qnameFirstFun = QualifiedName(Some(currentModule), firstFunName)
-
             val (insideExpr, fExpr) = constructExpr(expr)
             val (cond, fCond) = optionalIf match {
               case Node('OptionalIf ::= List(), List()) => (None, None)
@@ -253,11 +250,11 @@ class ASTConstructorLL1 extends ASTConstructor {
                 (Some(e), f)
             }
 
-            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, Nil, Some(firstFunName), cond, insideExpr)
+            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, Nil, cond, insideExpr)
 
-            val allFuns = toOptionalList(toOptionalList(toOptionalList(fForIns, Some(otherFuns)), fExpr), fCond)
+            val allFuns = toOptionalList(toOptionalList(toOptionalList(fForIns, Some(otherFuns.map(_._1))), fExpr), fCond)
 
-            (Call(qnameFirstFun, forIns.map(_._3)).setPos(rbr), allFuns)
+            (Call(QualifiedName(Some(currentModule), otherFuns.head._2), forIns.map(_._3)).setPos(rbr), allFuns)
           /*case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
             val name = FunctionId.fresh()
             val qnameNil = QualifiedName(Some("L"), "Nil")
@@ -451,32 +448,46 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def generateFunctions(lists: List[(String, String)], newArgs: List[String], firstName: Option[String], cond : Option[Expr], expr : Expr) : List[ClassOrFunDef] = {
+  def generateFunctions(lists: List[(String, String)], args: List[String], cond : Option[Expr], expr : Expr) : List[(ClassOrFunDef, String)] = {
     lists match{
-      case head :: Nil => List(funBase(head._1, head._2, newArgs, firstName, cond, expr))
+      case Nil => Nil
+      case head :: Nil => List(funBase(head._1, head._2, args, cond, expr))
       case head :: tail => {
-        Nil
-        //val rests : List[ClassOrFunDef] = generateFunction(tail, head._1 :: newArgs)
-        //val curr : ClassOrFunDef =
+        val funName = FunctionId.fresh()
 
-        //curr :: rests
+        val qnameNil = QualifiedName(Some("L"), "Nil")
+        val qnameCons = QualifiedName(Some("L"), "Cons")
+        val qnameList = QualifiedName(Some("L"), "List")
 
-        /*new FunDef(
-        def fun1(lists.map(_._2).map(toParamDef), newArgs.map(toParamDef)) : List = {
-          xs match{
-            case Cons(lists.head._1, tail) => Concat(call rests.head(tail.map(._2) :: lists.head._1 :: newArgs ), fun1(tail, newArgs.map(toParamDef))
-          }
-        } :: rests */
+        val ttList = TypeTree(ClassType(qnameList))
+        val ttInt = TypeTree(IntType)
+
+        val newArgs = head._1 :: args
+        val newArgsAsParamDef = newArgs.map(ParamDef(_, ttInt))
+
+        val rests : List[(ClassOrFunDef, String)] = generateFunctions(tail, newArgs, cond, expr)
+
+        val callTail = Call(QualifiedName(Some(currentModule), funName), Variable("tail") :: tail.map{case (_, listId) => Variable(listId)} ::: args.map(Variable))
+        val callRest = Call(QualifiedName(Some(currentModule), rests.head._2), tail.map{case (_, listId) => Variable(listId)} ::: newArgs.map(Variable))
+        val funParams = lists.map{case (_, listId) => ParamDef(listId, ttList)} ::: newArgsAsParamDef
+        val matchCaseNil = MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))
+
+        val curr : ClassOrFunDef =
+          FunDef(
+            funName, funParams, ttList,
+            Match(Variable(head._2),
+              List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(head._1), IdPattern("tail"))),
+                Call(qnameCons ,List(callRest, callTail))),
+                matchCaseNil)))
+
+        (curr, funName) :: rests
 
       }
     }
   }
 
-  def funBase(internId : String, list: String, argsId: List[String], firstName : Option[String], cond : Option[Expr], expr : Expr) : ClassOrFunDef = {
-    val name = firstName match {
-      case None => FunctionId.fresh()
-      case Some(n) => n
-    }
+  def funBase(internId : String, list: String, argsId: List[String], cond : Option[Expr], expr : Expr) : (ClassOrFunDef, String) = {
+    val name = FunctionId.fresh()
 
     val qnameNil = QualifiedName(Some("L"), "Nil")
     val qnameCons = QualifiedName(Some("L"), "Cons")
@@ -486,13 +497,13 @@ class ASTConstructorLL1 extends ASTConstructor {
     val funParams = ParamDef(list, ttList) :: argsId.map(ParamDef(_, ttInt))
     val matchCaseNil = MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))
 
-    cond match {
+    val funDef = cond match {
       case None =>
         FunDef(
           name, funParams, ttList,
           Match(Variable(list),
             List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(internId), IdPattern("tail"))),
-                Call(qnameCons ,List(expr, Call(QualifiedName(None, name), List(Variable("tail")))))),
+                Call(qnameCons ,List(expr, Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable))))),
               matchCaseNil)))
       case Some(condExpr) =>
         FunDef(
@@ -500,12 +511,14 @@ class ASTConstructorLL1 extends ASTConstructor {
           Match(Variable(list),
             List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(internId), IdPattern("tail"))),
               Ite(condExpr,
-                Call(qnameCons ,List(expr, Call(QualifiedName(None, name), List(Variable("tail"))))),
-                Call(QualifiedName(None, name), List(Variable("tail"))))),
+                Call(qnameCons ,List(expr, Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable)))),
+                Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable)))),
               matchCaseNil))
         )
 
     }
+
+    (funDef, name)
   }
 
   /**
