@@ -451,22 +451,37 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def generateFunctions(lists: List[(String, String)], newArgs: List[String], firstName: Option[String], cond : Option[Expr], expr : Expr) : List[ClassOrFunDef] = {
+  def generateFunctions(lists: List[(String, String)], args: List[String], firstName: Option[String], cond : Option[Expr], expr : Expr) : List[ClassOrFunDef] = {
+    //TODO need to give others lists as args !!!!!!!!!!!!!!!!!
+
     lists match{
-      case head :: Nil => List(funBase(head._1, head._2, newArgs, firstName, cond, expr))
+      case Nil => Nil
+      case head :: Nil => List(funBase(head._1, head._2, args, firstName, cond, expr))
       case head :: tail => {
-        Nil
-        //val rests : List[ClassOrFunDef] = generateFunction(tail, head._1 :: newArgs)
-        //val curr : ClassOrFunDef =
+        val funName = FunctionId.fresh()
+        val qnameNil = QualifiedName(Some("L"), "Nil")
+        val qnameCons = QualifiedName(Some("L"), "Cons")
+        val qnameList = QualifiedName(Some("L"), "List")
+        val ttList = TypeTree(ClassType(qnameList))
+        val ttInt = TypeTree(IntType)
+        val newArgs = head._1 :: args
+        val argsAsVar = args.map(Variable)
+        val newArgsAsParamDef = newArgs.map(ParamDef(_, ttInt))
+        val callTail = Call(QualifiedName(Some(currentModule), funName), Variable("tail") :: argsAsVar)
+        val callRest = ???
+        val funParams = lists.map{case (_, listId) => ParamDef(listId, ttList)} ::: newArgsAsParamDef
+        val matchCaseNil = MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))
 
-        //curr :: rests
+        val rests : List[ClassOrFunDef] = generateFunctions(tail, newArgs, firstName, cond, expr)
+        val curr : ClassOrFunDef =
+          FunDef(
+            funName, funParams, ttList,
+            Match(Variable(head._2),
+              List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(head._1), IdPattern("tail"))),
+                Call(qnameCons ,List(callRest, callTail))),
+                matchCaseNil)))
 
-        /*new FunDef(
-        def fun1(lists.map(_._2).map(toParamDef), newArgs.map(toParamDef)) : List = {
-          xs match{
-            case Cons(lists.head._1, tail) => Concat(call rests.head(tail.map(._2) :: lists.head._1 :: newArgs ), fun1(tail, newArgs.map(toParamDef))
-          }
-        } :: rests */
+        curr :: rests
 
       }
     }
@@ -492,7 +507,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           name, funParams, ttList,
           Match(Variable(list),
             List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(internId), IdPattern("tail"))),
-                Call(qnameCons ,List(expr, Call(QualifiedName(None, name), List(Variable("tail")))))),
+                Call(qnameCons ,List(expr, Call(QualifiedName(Some(currentModule), name), List(Variable("tail")))))),
               matchCaseNil)))
       case Some(condExpr) =>
         FunDef(
@@ -500,8 +515,8 @@ class ASTConstructorLL1 extends ASTConstructor {
           Match(Variable(list),
             List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(internId), IdPattern("tail"))),
               Ite(condExpr,
-                Call(qnameCons ,List(expr, Call(QualifiedName(None, name), List(Variable("tail"))))),
-                Call(QualifiedName(None, name), List(Variable("tail"))))),
+                Call(qnameCons ,List(expr, Call(QualifiedName(Some(currentModule), name), List(Variable("tail"))))),
+                Call(QualifiedName(Some(currentModule), name), List(Variable("tail"))))),
               matchCaseNil))
         )
 
