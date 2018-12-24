@@ -8,13 +8,14 @@ object ListCompr{
   //val zs : L.List = externalFunction(ys, 5);
 //  val as : L.List = [z for z in ys];
 
-  val hs: L.List = [x*y*z for x in xs for y in xs for z in [2*j for j in xs]];
+//  val hs: L.List = [x*y*z for x in xs for y in xs for z in [2*j for j in xs]];
 
   val th: Int = 2;
-  val js: L.List = [x for x in xs if (x <= th)];
+  val js: L.List = [x*y for x in xs for y in xs if (x <= th)];
+
 //  Std.printString(L.toString(ys));
   //Std.printString(L.toString(zs));
 //  Std.printString(L.toString(as))
-  Std.printString(L.toString(hs))
+  Std.printString(L.toString(js))
 }
 

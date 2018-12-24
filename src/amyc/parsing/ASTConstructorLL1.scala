@@ -250,12 +250,15 @@ class ASTConstructorLL1 extends ASTConstructor {
                 (Some(e), f)
             }
 
-            
-            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, Nil, cond, insideExpr)
+            val knownVar = forIns.map(forIn => NominalTreeModule.Variable(forIn._1)) ++ forIns.map(forIn => NominalTreeModule.Variable(forIn._2))
+            val extVar = newVariables(knownVar, insideExpr) ++ (if(cond.isDefined) newVariables(knownVar, cond.get) else Nil)
+
+
+            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, extVar, cond, insideExpr)
 
             val allFuns = toOptionalList(toOptionalList(toOptionalList(fForIns, Some(otherFuns.map(_._1))), fExpr), fCond)
 
-            (Call(QualifiedName(Some(currentModule), otherFuns.head._2), forIns.map(_._3)).setPos(rbr), allFuns)
+            (Call(QualifiedName(Some(currentModule), otherFuns.head._2), forIns.map(_._3) ++ extVar.map(n => Variable(n))).setPos(rbr), allFuns)
           /*case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
             val name = FunctionId.fresh()
             val qnameNil = QualifiedName(Some("L"), "Nil")
@@ -531,9 +534,9 @@ class ASTConstructorLL1 extends ASTConstructor {
     * @param expr
     * @return
     */
-  def newVariables(known: List[Variable], expr: Expr): List[Variable] = {
+  def newVariables(known: List[Variable], expr: Expr): List[String] = {
     expr match {
-      case v@Variable(name) => if(known.filter(p => p.name == name).isEmpty) List(v) else Nil
+      case Variable(name) => if(known.filter(p => p.name == name).isEmpty) List(name) else Nil
 
       case Plus(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
       case Minus(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
