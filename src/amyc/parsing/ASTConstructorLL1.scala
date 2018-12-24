@@ -250,6 +250,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                 (Some(e), f)
             }
 
+            
             val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, Nil, cond, insideExpr)
 
             val allFuns = toOptionalList(toOptionalList(toOptionalList(fForIns, Some(otherFuns.map(_._1))), fExpr), fCond)
@@ -458,18 +459,20 @@ class ASTConstructorLL1 extends ASTConstructor {
         val qnameNil = QualifiedName(Some("L"), "Nil")
         val qnameCons = QualifiedName(Some("L"), "Cons")
         val qnameList = QualifiedName(Some("L"), "List")
+        val qnameConcat = QualifiedName(Some("L"), "concat")
 
         val ttList = TypeTree(ClassType(qnameList))
         val ttInt = TypeTree(IntType)
 
         val newArgs = head._1 :: args
         val newArgsAsParamDef = newArgs.map(ParamDef(_, ttInt))
+        val oldArgsAsParamDef = args.map(ParamDef(_, ttInt))
 
         val rests : List[(ClassOrFunDef, String)] = generateFunctions(tail, newArgs, cond, expr)
 
         val callTail = Call(QualifiedName(Some(currentModule), funName), Variable("tail") :: tail.map{case (_, listId) => Variable(listId)} ::: args.map(Variable))
         val callRest = Call(QualifiedName(Some(currentModule), rests.head._2), tail.map{case (_, listId) => Variable(listId)} ::: newArgs.map(Variable))
-        val funParams = lists.map{case (_, listId) => ParamDef(listId, ttList)} ::: newArgsAsParamDef
+        val funParams = lists.map{case (_, listId) => ParamDef(listId, ttList)} ::: oldArgsAsParamDef
         val matchCaseNil = MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))
 
         val curr : ClassOrFunDef =
@@ -477,7 +480,7 @@ class ASTConstructorLL1 extends ASTConstructor {
             funName, funParams, ttList,
             Match(Variable(head._2),
               List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(head._1), IdPattern("tail"))),
-                Call(qnameCons ,List(callRest, callTail))),
+                Call(qnameConcat ,List(callRest, callTail))),
                 matchCaseNil)))
 
         (curr, funName) :: rests
