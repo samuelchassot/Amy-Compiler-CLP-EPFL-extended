@@ -104,9 +104,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
     val feedback = ParseTreeUtils.parseWithTrees(grammar, tokens.toList)
     feedback match {
       case s: Success[Token] =>
-        val program = constructor.constructProgram(s.parseTrees.head)
-        println(program.toString)
-        program
+        constructor.constructProgram(s.parseTrees.head)
       case err@LL1Error(_, Some(tok)) =>
         fatal(s"Parsing failed: $err", tok.obj.position)
       case err =>
