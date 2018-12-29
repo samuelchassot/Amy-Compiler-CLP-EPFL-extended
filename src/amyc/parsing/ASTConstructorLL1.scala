@@ -254,48 +254,11 @@ class ASTConstructorLL1 extends ASTConstructor {
             val extVar = newVariables(knownVar, insideExpr) ++ (if(cond.isDefined) newVariables(knownVar, cond.get) else Nil)
 
 
-            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, extVar, cond, insideExpr)
+            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, extVar.toList, cond, insideExpr)
 
             val allFuns = toOptionalList(toOptionalList(toOptionalList(fForIns, Some(otherFuns.map(_._1))), fExpr), fCond)
 
             (Call(QualifiedName(Some(currentModule), otherFuns.head._2), forIns.map(_._3) ++ extVar.map(n => Variable(n))).setPos(rbr), allFuns)
-          /*case Node('ListCompr ::= _, List(Leaf(lbr), expr, _, internId, _, listExpr, optionalIf, Leaf(rbr))) => {
-            val name = FunctionId.fresh()
-            val qnameNil = QualifiedName(Some("L"), "Nil")
-            val qnameCons = QualifiedName(Some("L"), "Cons")
-            val qnameList = QualifiedName(Some("L"), "List")
-            val qnameNewFunction = QualifiedName(Some(currentModule), name)
-            val (listAsArg, fList) = constructExpr(listExpr)
-
-            optionalIf match{
-              case Node('OptionalIf ::= List(), List()) =>
-                (Call(qnameNewFunction, List(listAsArg)).setPos(rbr),
-                  toOptionalList(Some(
-                    List(FunDef(
-                      name,
-                      List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
-                      TypeTree(ClassType(qnameList)),
-                      Match(Variable("xs"),
-                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
-                            Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail")))))),
-                          MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
-                  ).setPos(lbr))), fList))
-
-              case Node('OptionalIf ::= _, List(_, cond))=>
-                (Call(qnameNewFunction, List(listAsArg)).setPos(rbr),
-                  toOptionalList(Some(
-                    List(FunDef(
-                      name,
-                      List(ParamDef("xs", TypeTree(ClassType(qnameList)))),
-                      TypeTree(ClassType(qnameList)),
-                      Match(Variable("xs"),
-                        List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(constructName(internId)._1), IdPattern("tail"))),
-                          Ite(constructExpr(cond)._1,
-                            Call(qnameCons ,List(constructExpr(expr)._1, Call(QualifiedName(None, name), List(Variable("tail"))))),
-                            Call(QualifiedName(None, name), List(Variable("tail"))))),
-                          MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))))
-                    ).setPos(lbr))), fList ))
-            }*/
           }
         }
 
@@ -390,16 +353,6 @@ class ASTConstructorLL1 extends ASTConstructor {
 
     }
   }
-
-//  override def constructList1[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
-//    ptree match {
-//      case Node(_, List(t)) => List(constructor(t))
-//      case Node(_, List(t, ts)) =>
-//        constructor(t) :: constructList1(ts, constructor, hasComma)
-//      case Node(_, List(t, Leaf(COMMA()), ts)) if hasComma =>
-//        constructor(t) :: constructList1(ts, constructor, hasComma)
-//    }
-//  }
 
 
   override def constructOp(ptree: NodeOrLeaf[Token]): (Expr, Expr) => Expr = {
@@ -534,37 +487,37 @@ class ASTConstructorLL1 extends ASTConstructor {
     * @param expr
     * @return
     */
-  def newVariables(known: List[Variable], expr: Expr): List[String] = {
+  def newVariables(known: List[Variable], expr: Expr): Set[String] = {
     expr match {
-      case Variable(name) => if(known.filter(p => p.name == name).isEmpty) List(name) else Nil
+      case Variable(name) => if(!known.exists(p => p.name == name)) Set(name) else Set.empty
 
-      case Plus(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Minus(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Times(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Div(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Mod(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case LessThan(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case LessEquals(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case And(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Or(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Equals(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
-      case Concat(lhs, rhs) => newVariables(known, lhs) ::: newVariables(known, rhs)
+      case Plus(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Minus(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Times(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Div(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Mod(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case LessThan(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case LessEquals(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case And(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Or(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Equals(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
+      case Concat(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
       case Not(e) => newVariables(known, e)
       case Neg(e) => newVariables(known, e)
 
-      case Call(qname, args) => args.flatMap(a => newVariables(known, a))
+      case Call(qname, args) => args.flatMap(a => newVariables(known, a)).toSet
 
-      case Sequence(e1, e2) => newVariables(known, e1) ::: newVariables(known, e2)
+      case Sequence(e1, e2) => newVariables(known, e1) ++ newVariables(known, e2)
 
       case Let(df, value, body) => newVariables(known, body)
 
-      case Ite(cond, thenn, elze) => newVariables(known, cond) ::: newVariables(known, thenn) ::: newVariables(known, elze)
+      case Ite(cond, thenn, elze) => newVariables(known, cond) ++ newVariables(known, thenn) ++ newVariables(known, elze)
 
-      case Match(scrut, cases) => newVariables(known, scrut) ::: cases.flatMap(c => newVariables(known, c.expr))
+      case Match(scrut, cases) => newVariables(known, scrut) ++ cases.flatMap(c => newVariables(known, c.expr))
 
       case Error(msg) => newVariables(known, msg)
 
-      case _ => Nil
+      case _ => Set.empty
 
     }
   }
