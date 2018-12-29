@@ -13,8 +13,9 @@ import amyc.ast.{Identifier, NominalTreeModule}
 // override whatever has changed. You can look into ASTConstructor as an example.
 class ASTConstructorLL1 extends ASTConstructor {
 
-  object FunctionId{
+  object FunctionId {
     private var index = 1
+
     def fresh(): String = {
       val name = "++listComprDesuggar" + index
       index += 1
@@ -22,8 +23,9 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  object ListId{
+  object ListId {
     private var index = 1
+
     def fresh(): String = {
       val name = "--ListId" + index
       index += 1
@@ -62,7 +64,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('StartVal ::= (VAL() :: _), List(Leaf(vt), param, _, valueTree, _, expr)) =>
         val valueExprAndDef = constructExprLvl02(valueTree)
         val exprExprAndDef = constructExpr(expr)
-        (Let(constructParam(param),valueExprAndDef._1 , exprExprAndDef._1).setPos(vt), toOptionalList(valueExprAndDef._2, exprExprAndDef._2))
+        (Let(constructParam(param), valueExprAndDef._1, exprExprAndDef._1).setPos(vt), toOptionalList(valueExprAndDef._2, exprExprAndDef._2))
     }
   }
 
@@ -108,7 +110,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('lvl03 ::= _, List(lvl04Tree, lvl03Opt)) =>
         val (e, f) = constructExprLvl04(lvl04Tree)
-        val leftAssociated = constructOpExpr(e , lvl03Opt, None, constructExprLvl04)
+        val leftAssociated = constructOpExpr(e, lvl03Opt, None, constructExprLvl04)
         (leftAssociated._1, toOptionalList(leftAssociated._2, f))
     }
   }
@@ -194,14 +196,14 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val qname = QualifiedName(Some(module), name)
                 val args = constructList(argsTree, constructExpr, hasComma = true)
                 (Call(qname, args.map(_._1)).setPos(modPos),
-                  args.foldLeft(None : Option[List[ClassOrFunDef]])((acc, a) => toOptionalList(acc, a._2)))
+                  args.foldLeft(None: Option[List[ClassOrFunDef]])((acc, a) => toOptionalList(acc, a._2)))
               }
               case Node('QNameOpt ::= List(), List()) => {
                 val (name, namePos) = constructName(id)
                 val qname = QualifiedName(None, name)
                 val args = constructList(argsTree, constructExpr, hasComma = true)
                 (Call(qname, args.map(_._1)).setPos(namePos),
-                  args.foldLeft(None : Option[List[ClassOrFunDef]])((acc, a) => toOptionalList(acc, a._2)))
+                  args.foldLeft(None: Option[List[ClassOrFunDef]])((acc, a) => toOptionalList(acc, a._2)))
               }
             }
           }
@@ -232,47 +234,47 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('lvl10 ::= List('ListCompr), List(listCompr)) =>
         listCompr match {
           case Node('ListCompr ::= _, List(_, expr, forIn, optionalForIn, optionalIf, Leaf(rbr))) =>
-            val (firstFor : (String, String, Expr), fFirstFor) = forIn match {
-                  case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
-                    val listId = ListId.fresh()
-                    val (list, fList) = constructExpr(listExpr)
-                    ((constructName(id)._1, listId, list), fList)
-                }
+            val (firstFor: (String, String, Expr), fFirstFor) = forIn match {
+              case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
+                val listId = ListId.fresh()
+                val (list, fList) = constructExpr(listExpr)
+                ((constructName(id)._1, listId, list), fList)
+            }
 
             val (otherFors, fOtherFor) = fors(optionalForIn)
-            val (forIns : List[(String, String, Expr)], fForIns) = (firstFor :: otherFors, toOptionalList(fFirstFor, fOtherFor))
+            val (forIns: List[(String, String, Expr)], fForIns) = (firstFor :: otherFors, toOptionalList(fFirstFor, fOtherFor))
 
             val (insideExpr, fExpr) = constructExpr(expr)
             val (cond, fCond) = optionalIf match {
               case Node('OptionalIf ::= List(), List()) => (None, None)
-              case Node('OptionalIf ::= _, List(_, c))=>
+              case Node('OptionalIf ::= _, List(_, c)) =>
                 val (e, f) = constructExpr(c)
                 (Some(e), f)
             }
 
             val knownVar = forIns.map(forIn => NominalTreeModule.Variable(forIn._1)) ++ forIns.map(forIn => NominalTreeModule.Variable(forIn._2))
-            val extVar = newVariables(knownVar, insideExpr) ++ (if(cond.isDefined) newVariables(knownVar, cond.get) else Nil)
+            val extVar = newVariables(knownVar, insideExpr) ++ (if (cond.isDefined) newVariables(knownVar, cond.get) else Nil)
 
 
-            val otherFuns = generateFunctions(forIns.map{case (argsId, listId, _) => (argsId, listId)}, extVar.toList, cond, insideExpr)
+            val otherFuns = generateFunctions(forIns.map { case (argsId, listId, _) => (argsId, listId) }, extVar.toList, cond, insideExpr)
 
             val allFuns = toOptionalList(toOptionalList(toOptionalList(fForIns, Some(otherFuns.map(_._1))), fExpr), fCond)
 
             (Call(QualifiedName(Some(currentModule), otherFuns.head._2), forIns.map(_._3) ++ extVar.map(n => Variable(n))).setPos(rbr), allFuns)
-          }
         }
+    }
 
-      /* Fun base :
-      [ expr for id1 in id2 if(cond) ] ==>> ++listComprDesuggar1(id2)
+    /* Fun base :
+    [ expr for id1 in id2 if(cond) ] ==>> ++listComprDesuggar1(id2)
 
-      def ++listComprDesuggar1(x1: L.List) = {
+    def ++listComprDesuggar1(x1: L.List) = {
 
-        x1 match {
-          case L.Cons(id1, tail) => if(cond) L.Cons(expr, ++listComprDesuggar1(tail)) else ++listComprDesuggar1(tail)
-          case L.Nil() => L.Nil()
-        }
+      x1 match {
+        case L.Cons(id1, tail) => if(cond) L.Cons(expr, ++listComprDesuggar1(tail)) else ++listComprDesuggar1(tail)
+        case L.Nil() => L.Nil()
       }
-        */
+    }
+      */
 
   }
 
@@ -298,7 +300,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('Pattern ::= List('LiteralWithoutUnit), List(lit)) =>
         val literal = constructLiteral(lit)
         LiteralPattern(literal).setPos(literal)
-      case Node('Pattern ::= List(LPAREN(), RPAREN()), List(Leaf(lpt),_)) =>
+      case Node('Pattern ::= List(LPAREN(), RPAREN()), List(Leaf(lpt), _)) =>
         val literal = UnitLiteral().setPos(lpt)
         LiteralPattern(literal).setPos(literal)
       case Node('Pattern ::= List('Id, 'IdPatternOpt), List(id, idPatOpt)) =>
@@ -337,10 +339,10 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructCases(ptree : NodeOrLeaf[Token]) : (List[MatchCase], Option[List[ClassOrFunDef]]) ={
-    ptree match{
+  def constructCases(ptree: NodeOrLeaf[Token]): (List[MatchCase], Option[List[ClassOrFunDef]]) = {
+    ptree match {
       case Node('Cases ::= _, List(caseTree, casesOpt)) => {
-        casesOpt match{
+        casesOpt match {
           case Node('CasesOpt ::= List(), List()) =>
             val (c, f) = constructCase(caseTree)
             (c :: Nil, f)
@@ -386,12 +388,12 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def toOptionalList(o1 : Option[List[ClassOrFunDef]], o2 : Option[List[ClassOrFunDef]]) : Option[List[ClassOrFunDef]] = {
+  def toOptionalList(o1: Option[List[ClassOrFunDef]], o2: Option[List[ClassOrFunDef]]): Option[List[ClassOrFunDef]] = {
     val l = o1.getOrElse(Nil) ++ o2.getOrElse(Nil)
-    if(l.isEmpty) None else Some(l)
+    if (l.isEmpty) None else Some(l)
   }
 
-  def fors(optionalForIns : NodeOrLeaf[Token]) : (List[(String, String, Expr)], Option[List[ClassOrFunDef]]) = {
+  def fors(optionalForIns: NodeOrLeaf[Token]): (List[(String, String, Expr)], Option[List[ClassOrFunDef]]) = {
     optionalForIns match {
       case Node('OptionalForIns ::= List(), List()) => (Nil, None)
       case Node('OptionalForIns ::= List('ForIn, 'OptionalForIns), List(curr, tail)) =>
@@ -399,14 +401,14 @@ class ASTConstructorLL1 extends ASTConstructor {
           case Node('ForIn ::= _, List(_, id, _, listExpr)) =>
             val listId = ListId.fresh()
             val (list, fList) = constructExpr(listExpr)
-            val (rest, frest) =  fors(tail)
-            ((constructName(id)._1, listId, list) :: rest , toOptionalList(fList,frest))
+            val (rest, frest) = fors(tail)
+            ((constructName(id)._1, listId, list) :: rest, toOptionalList(fList, frest))
         }
     }
   }
 
-  def generateFunctions(lists: List[(String, String)], args: List[String], cond : Option[Expr], expr : Expr) : List[(ClassOrFunDef, String)] = {
-    lists match{
+  def generateFunctions(lists: List[(String, String)], args: List[String], cond: Option[Expr], expr: Expr): List[(ClassOrFunDef, String)] = {
+    lists match {
       case Nil => Nil
       case head :: Nil => List(funBase(head._1, head._2, args, cond, expr))
       case head :: tail => {
@@ -424,19 +426,19 @@ class ASTConstructorLL1 extends ASTConstructor {
         val newArgsAsParamDef = newArgs.map(ParamDef(_, ttInt))
         val oldArgsAsParamDef = args.map(ParamDef(_, ttInt))
 
-        val rests : List[(ClassOrFunDef, String)] = generateFunctions(tail, newArgs, cond, expr)
+        val rests: List[(ClassOrFunDef, String)] = generateFunctions(tail, newArgs, cond, expr)
 
-        val callTail = Call(QualifiedName(Some(currentModule), funName), Variable("tail") :: tail.map{case (_, listId) => Variable(listId)} ::: args.map(Variable))
-        val callRest = Call(QualifiedName(Some(currentModule), rests.head._2), tail.map{case (_, listId) => Variable(listId)} ::: newArgs.map(Variable))
-        val funParams = lists.map{case (_, listId) => ParamDef(listId, ttList)} ::: oldArgsAsParamDef
+        val callTail = Call(QualifiedName(Some(currentModule), funName), Variable("tail") :: tail.map { case (_, listId) => Variable(listId) } ::: args.map(Variable))
+        val callRest = Call(QualifiedName(Some(currentModule), rests.head._2), tail.map { case (_, listId) => Variable(listId) } ::: newArgs.map(Variable))
+        val funParams = lists.map { case (_, listId) => ParamDef(listId, ttList) } ::: oldArgsAsParamDef
         val matchCaseNil = MatchCase(CaseClassPattern(qnameNil, List()), Call(qnameNil, List()))
 
-        val curr : ClassOrFunDef =
+        val curr: ClassOrFunDef =
           FunDef(
             funName, funParams, ttList,
             Match(Variable(head._2),
               List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(head._1), IdPattern("tail"))),
-                Call(qnameConcat ,List(callRest, callTail))),
+                Call(qnameConcat, List(callRest, callTail))),
                 matchCaseNil)))
 
         (curr, funName) :: rests
@@ -445,7 +447,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def funBase(internId : String, list: String, argsId: List[String], cond : Option[Expr], expr : Expr) : (ClassOrFunDef, String) = {
+  def funBase(internId: String, list: String, argsId: List[String], cond: Option[Expr], expr: Expr): (ClassOrFunDef, String) = {
     val name = FunctionId.fresh()
 
     val qnameNil = QualifiedName(Some("L"), "Nil")
@@ -462,7 +464,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           name, funParams, ttList,
           Match(Variable(list),
             List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(internId), IdPattern("tail"))),
-                Call(qnameCons ,List(expr, Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable))))),
+              Call(qnameCons, List(expr, Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable))))),
               matchCaseNil)))
       case Some(condExpr) =>
         FunDef(
@@ -470,7 +472,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           Match(Variable(list),
             List(MatchCase(CaseClassPattern(qnameCons, List(IdPattern(internId), IdPattern("tail"))),
               Ite(condExpr,
-                Call(qnameCons ,List(expr, Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable)))),
+                Call(qnameCons, List(expr, Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable)))),
                 Call(QualifiedName(Some(currentModule), name), Variable("tail") :: argsId.map(Variable)))),
               matchCaseNil))
         )
@@ -483,13 +485,14 @@ class ASTConstructorLL1 extends ASTConstructor {
   /**
     * take a list of Variables which corresponds to the Variable defined after for keywords and expr and returns the
     * new Variables that need to be taken as param in the given expr
+    *
     * @param known
     * @param expr
     * @return
     */
   def newVariables(known: List[Variable], expr: Expr): Set[String] = {
     expr match {
-      case Variable(name) => if(!known.exists(p => p.name == name)) Set(name) else Set.empty
+      case Variable(name) => if (!known.exists(p => p.name == name)) Set(name) else Set.empty
 
       case Plus(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)
       case Minus(lhs, rhs) => newVariables(known, lhs) ++ newVariables(known, rhs)

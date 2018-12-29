@@ -3,7 +3,6 @@ package analyzer
 
 import utils._
 import ast.{Identifier, NominalTreeModule => N, SymbolicTreeModule => S}
-import javax.sound.midi.Sequence
 
 // Name analyzer for Amy
 // Takes a nominal program (names are plain strings, qualified names are string pairs)
