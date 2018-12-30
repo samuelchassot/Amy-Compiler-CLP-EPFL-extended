@@ -22,13 +22,18 @@ abstract class ASTConstructor {
 
   def constructModule(pTree: NodeOrLeaf[Token]): ModuleDef = {
     pTree match {
-      case Node('ModuleDef ::= _, List(Leaf(obj), name, _, defs, optExpr, _, _)) =>
+      case Node(
+          'ModuleDef ::= _,
+          List(Leaf(obj), name, _, defs, optExpr, _, _)
+          ) =>
         val modName = constructName(name)._1
         currentModule = modName
         val constructedOption = constructOption(optExpr, constructExpr)
         ModuleDef(
           modName,
-          constructList(defs, constructDef).flatten ::: constructedOption._2.getOrElse(Some(Nil)).getOrElse(Nil),
+          constructList(defs, constructDef).flatten ::: constructedOption._2
+            .getOrElse(Some(Nil))
+            .getOrElse(Nil),
           constructedOption._1
         ).setPos(obj)
     }
@@ -36,7 +41,7 @@ abstract class ASTConstructor {
 
   def constructName(ptree: NodeOrLeaf[Token]): (String, Positioned) = {
     ptree match {
-      case Node('Id ::= _, List(Leaf(id@ID(name)))) =>
+      case Node('Id ::= _, List(Leaf(id @ ID(name)))) =>
         (name, id)
     }
   }
@@ -52,15 +57,21 @@ abstract class ASTConstructor {
     pTree match {
       case Node('AbstractClassDef ::= _, List(Leaf(abs), _, name)) =>
         List(AbstractClassDef(constructName(name)._1).setPos(abs))
-      case Node('CaseClassDef ::= _, List(Leaf(cse), _, name, _, params, _, _, parent)) =>
+      case Node(
+          'CaseClassDef ::= _,
+          List(Leaf(cse), _, name, _, params, _, _, parent)
+          ) =>
         List(
-            CaseClassDef(
+          CaseClassDef(
             constructName(name)._1,
             constructList(params, constructParam, hasComma = true).map(_.tt),
             constructName(parent)._1
           ).setPos(cse)
         )
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+      case Node(
+          'FunDef ::= _,
+          List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)
+          ) =>
         val (constrBody, newDefs) = constructExpr(body)
         FunDef(
           constructName(name)._1,
@@ -83,10 +94,10 @@ abstract class ASTConstructor {
     pTree match {
       case Node('Type ::= _, List(Leaf(tp))) =>
         TypeTree((tp: @unchecked) match {
-          case INT() => IntType
-          case STRING() => StringType
+          case INT()     => IntType
+          case STRING()  => StringType
           case BOOLEAN() => BooleanType
-          case UNIT() => UnitType
+          case UNIT()    => UnitType
         }).setPos(tp)
       case Node('Type ::= _, List(qn)) =>
         val (qname, pos) = constructQname(qn)
@@ -96,21 +107,20 @@ abstract class ASTConstructor {
 
   def constructQname(pTree: NodeOrLeaf[Token]): (QualifiedName, Positioned)
 
-
   def tokenToExpr(t: Token): (Expr, Expr) => Expr = {
     (t: @unchecked) match {
-      case PLUS() => Plus
-      case MINUS() => Minus
-      case TIMES() => Times
-      case DIV() => Div
-      case MOD() => Mod
-      case LESSTHAN() => LessThan
+      case PLUS()       => Plus
+      case MINUS()      => Minus
+      case TIMES()      => Times
+      case DIV()        => Div
+      case MOD()        => Mod
+      case LESSTHAN()   => LessThan
       case LESSEQUALS() => LessEquals
-      case AND() => And
-      case OR() => Or
-      case EQUALS() => Equals
-      case CONCAT() => Concat
-      case SEMICOLON() => Sequence
+      case AND()        => And
+      case OR()         => Or
+      case EQUALS()     => Equals
+      case CONCAT()     => Concat
+      case SEMICOLON()  => Sequence
     }
   }
 
@@ -120,24 +130,31 @@ abstract class ASTConstructor {
         tokenToExpr(t)
     }
   }
-  def constructExpr(ptree: NodeOrLeaf[Token]): (Expr, Option[List[ClassOrFunDef]])
+  def constructExpr(
+      ptree: NodeOrLeaf[Token]
+  ): (Expr, Option[List[ClassOrFunDef]])
 
   def constructLiteral(pTree: NodeOrLeaf[Token]): Literal[_] = {
     pTree match {
-      case Node('Literal ::= List(INTLITSENT), List(Leaf(it@INTLIT(i)))) =>
+      case Node('Literal ::= List(INTLITSENT), List(Leaf(it @ INTLIT(i)))) =>
         IntLiteral(i).setPos(it)
-      case Node('Literal ::= List(STRINGLITSENT), List(Leaf(st@STRINGLIT(s)))) =>
+      case Node(
+          'Literal ::= List(STRINGLITSENT),
+          List(Leaf(st @ STRINGLIT(s)))
+          ) =>
         StringLiteral(s).setPos(st)
-      case Node('Literal ::= _, List(Leaf(tt@TRUE()))) =>
+      case Node('Literal ::= _, List(Leaf(tt @ TRUE()))) =>
         BooleanLiteral(true).setPos(tt)
-      case Node('Literal ::= _, List(Leaf(tf@FALSE()))) =>
+      case Node('Literal ::= _, List(Leaf(tf @ FALSE()))) =>
         BooleanLiteral(false).setPos(tf)
-      case Node('Literal ::= _, List(Leaf(lp@LPAREN()), Leaf(RPAREN()))) =>
+      case Node('Literal ::= _, List(Leaf(lp @ LPAREN()), Leaf(RPAREN()))) =>
         UnitLiteral().setPos(lp)
     }
   }
 
-  def constructCase(pTree: NodeOrLeaf[Token]): (MatchCase, Option[List[ClassOrFunDef]])
+  def constructCase(
+      pTree: NodeOrLeaf[Token]
+  ): (MatchCase, Option[List[ClassOrFunDef]])
 
   def constructPattern(pTree: NodeOrLeaf[Token]): Pattern = {
     pTree match {
@@ -170,7 +187,11 @@ abstract class ASTConstructor {
     * @tparam A The type of List elements
     * @return A list of parsed elements of type A
     */
-  def constructList[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
+  def constructList[A](
+      ptree: NodeOrLeaf[Token],
+      constructor: NodeOrLeaf[Token] => A,
+      hasComma: Boolean = false
+  ): List[A] = {
     ptree match {
       case Node(_, List()) => List()
       case Node(_, List(t, ts)) =>
@@ -195,7 +216,11 @@ abstract class ASTConstructor {
     * @tparam A The type of List elements
     * @return A list of parsed elements of type A
     */
-  def constructList1[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
+  def constructList1[A](
+      ptree: NodeOrLeaf[Token],
+      constructor: NodeOrLeaf[Token] => A,
+      hasComma: Boolean = false
+  ): List[A] = {
     ptree match {
       case Node(_, List(t)) => List(constructor(t))
       case Node(_, List(t, ts)) =>
@@ -212,7 +237,10 @@ abstract class ASTConstructor {
     * @tparam A The type of the element
     * @return The element wrapped in Some(), or None if the production is empty.
     */
-  def constructOption[A, B](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => (A, B)): (Option[A], Option[B]) = {
+  def constructOption[A, B](
+      ptree: NodeOrLeaf[Token],
+      constructor: NodeOrLeaf[Token] => (A, B)
+  ): (Option[A], Option[B]) = {
     ptree match {
       case Node(_, List()) => (None, None)
       case Node(_, List(t)) =>
@@ -232,7 +260,10 @@ abstract class ASTConstructor {
     * @tparam A The type of the element
     * @return The element wrapped in Some(), or None if the production is empty.
     */
-  def constructOpOption[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A): Option[A] = {
+  def constructOpOption[A](
+      ptree: NodeOrLeaf[Token],
+      constructor: NodeOrLeaf[Token] => A
+  ): Option[A] = {
     ptree match {
       case Node(_, List()) => None
       case Node(_, List(_, t)) =>

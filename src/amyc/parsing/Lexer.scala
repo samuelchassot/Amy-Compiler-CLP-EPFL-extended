@@ -55,7 +55,9 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
 
     // The input to the lexer
     val inputStream: Stream[Input] =
-      source.toStream.map(c => (c, mkPos(source.pos))) #::: Stream((EndOfFile, mkPos(source.pos)))
+      source.toStream.map(c => (c, mkPos(source.pos))) #::: Stream(
+        (EndOfFile, mkPos(source.pos))
+      )
 
     /** Gets rid of whitespaces and comments and calls readToken to get the next token.
       * Returns the first token and the remaining input that did not get consumed
@@ -70,22 +72,30 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
       def nextChar = rest.head._1
 
       if (Character.isWhitespace(currentChar)) {
-        nextToken(stream.dropWhile{ case (c, _) => Character.isWhitespace(c) } )
+        nextToken(stream.dropWhile { case (c, _) => Character.isWhitespace(c) })
       } else if (currentChar == '/' && nextChar == '/') {
         // Single-line comment
-        val afterComments = stream.dropWhile( {case(c, _) => c != '\n' && c != '\r' && c != EndOfFile} )
-        if(afterComments.head._1 == EndOfFile) nextToken(afterComments) else nextToken(afterComments.tail)
+        val afterComments = stream.dropWhile({
+          case (c, _) => c != '\n' && c != '\r' && c != EndOfFile
+        })
+        if (afterComments.head._1 == EndOfFile) nextToken(afterComments)
+        else nextToken(afterComments.tail)
       } else if (currentChar == '/' && nextChar == '*') {
         // Multi-line comment
-        def removeUntilEndOfComment(str : Stream[(Char, Position)]) : Stream[(Char, Position)] = {
+        def removeUntilEndOfComment(
+            str: Stream[(Char, Position)]
+        ): Stream[(Char, Position)] = {
           val (curChar, cuPos) #:: rest = str
-          if(curChar == EndOfFile) (curChar, cuPos) #:: rest else
-              if(curChar == '*' && !rest.tail.isEmpty && rest.head._1 == '/') rest.tail else removeUntilEndOfComment(rest)
+          if (curChar == EndOfFile) (curChar, cuPos) #:: rest
+          else if (curChar == '*' && !rest.tail.isEmpty && rest.head._1 == '/')
+            rest.tail
+          else removeUntilEndOfComment(rest)
         }
 
         val commRemoved = removeUntilEndOfComment(rest.tail)
         println(commRemoved.head._1)
-        if (commRemoved.head._1 == EndOfFile) ctx.reporter.error("Unclosed comment", currentPos)
+        if (commRemoved.head._1 == EndOfFile)
+          ctx.reporter.error("Unclosed comment", currentPos)
 
         nextToken(commRemoved)
 
@@ -93,8 +103,6 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
         readToken(stream)
       }
     }
-
-
 
     /** Reads the next token from the stream. Assumes no whitespace or comments at the beginning.
       * Returns the first token and the remaining input that did not get consumed.
@@ -117,16 +125,17 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
 
         // Reserved word or Identifier
         case _ if Character.isLetter(currentChar) =>
-          val (wordLetters, afterWord) = stream.span { case (ch, _) =>
-            Character.isLetterOrDigit(ch) || ch == '_'
+          val (wordLetters, afterWord) = stream.span {
+            case (ch, _) =>
+              Character.isLetterOrDigit(ch) || ch == '_'
           }
           val word = wordLetters.map(_._1).mkString
           // Hint: Decide if it's a letter or reserved word (use our infrastructure!),
           // and return the correct token, along with the remaining input stream.
           // Make sure you set the correct position for the token.
-          keywords(word) match{
+          keywords(word) match {
             case Some(t) => (t.setPos(currentPos), afterWord)
-            case None => (ID(word).setPos(currentPos), afterWord)
+            case None    => (ID(word).setPos(currentPos), afterWord)
 
           }
 
@@ -134,25 +143,26 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
         case _ if Character.isDigit(currentChar) =>
           // Hint: Use a strategy similar to the previous example.
           // Make sure you fail for integers that do not fit 32 bits.
-          val (i, afterInt) = stream.span{
+          val (i, afterInt) = stream.span {
             case (c, _) => Character.isDigit(c)
           }
 
           val numberString = i.map(_._1).mkString
           val numBigInt = BigInt(numberString)
-          if(numBigInt.equals(numBigInt.intValue())) (INTLIT(numBigInt.toInt).setPos(currentPos), afterInt ) else {
+          if (numBigInt.equals(numBigInt.intValue()))
+            (INTLIT(numBigInt.toInt).setPos(currentPos), afterInt)
+          else {
             ctx.reporter.error("to big number to fit in Int", currentPos)
             (BAD().setPos(currentPos), afterInt)
           }
 
         // String literal
         case '"' =>
-
-          val (word, afterWord) = rest.span{
+          val (word, afterWord) = rest.span {
             case (c, _) => c != '"' && c != EndOfFile && c != '\n' && c != '\r'
           }
 
-          if(afterWord.head._1 == EndOfFile || afterWord.head._1 == '\n' || afterWord.head._1 == '\r') {
+          if (afterWord.head._1 == EndOfFile || afterWord.head._1 == '\n' || afterWord.head._1 == '\r') {
             ctx.reporter.error("Unclosed string literal", currentPos)
             (BAD().setPos(currentPos), afterWord)
           } else {
@@ -162,31 +172,31 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
 
         // (You can look at Tokens.scala for an exhaustive list of tokens)
         // There should also be a case for all remaining (invalid) characters in the end
-        case '+' if(nextChar == '+') => useTwo(CONCAT())
-        case '+' => useOne(PLUS())
-        case '-' => useOne(MINUS())
-        case '/' => useOne(DIV())
-        case '*' => useOne(TIMES())
-        case ';' => useOne(SEMICOLON())
-        case '%' => useOne(MOD())
-        case '<' if(nextChar == '=') => useTwo(LESSEQUALS())
-        case '<' => useOne(LESSTHAN())
-        case '&' if(nextChar == '&') => useTwo(AND())
-        case '|' if(nextChar == '|') => useTwo(OR())
-        case '=' if(nextChar == '=') => useTwo(EQUALS())
-        case '!' => useOne(BANG())
-        case '{' => useOne(LBRACE())
-        case '}' => useOne(RBRACE())
-        case '(' => useOne(LPAREN())
-        case ')' => useOne(RPAREN())
-        case ',' => useOne(COMMA())
-        case ':' => useOne(COLON())
-        case '.' => useOne(DOT())
-        case '=' if(nextChar == '>') => useTwo(RARROW())
-        case '=' => useOne(EQSIGN())
-        case '_' => useOne(UNDERSCORE())
-        case '[' => useOne(LBRACK())
-        case ']' => useOne(RBRACK())
+        case '+' if (nextChar == '+') => useTwo(CONCAT())
+        case '+'                      => useOne(PLUS())
+        case '-'                      => useOne(MINUS())
+        case '/'                      => useOne(DIV())
+        case '*'                      => useOne(TIMES())
+        case ';'                      => useOne(SEMICOLON())
+        case '%'                      => useOne(MOD())
+        case '<' if (nextChar == '=') => useTwo(LESSEQUALS())
+        case '<'                      => useOne(LESSTHAN())
+        case '&' if (nextChar == '&') => useTwo(AND())
+        case '|' if (nextChar == '|') => useTwo(OR())
+        case '=' if (nextChar == '=') => useTwo(EQUALS())
+        case '!'                      => useOne(BANG())
+        case '{'                      => useOne(LBRACE())
+        case '}'                      => useOne(RBRACE())
+        case '('                      => useOne(LPAREN())
+        case ')'                      => useOne(RPAREN())
+        case ','                      => useOne(COMMA())
+        case ':'                      => useOne(COLON())
+        case '.'                      => useOne(DOT())
+        case '=' if (nextChar == '>') => useTwo(RARROW())
+        case '='                      => useOne(EQSIGN())
+        case '_'                      => useOne(UNDERSCORE())
+        case '['                      => useOne(LBRACK())
+        case ']'                      => useOne(RBRACK())
 
         case _ => {
           ctx.reporter.error("Character not recognized", currentPos)
@@ -217,6 +227,8 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
 /** Extracts all tokens from input and displays them */
 object DisplayTokens extends Pipeline[Stream[Token], Unit] {
   def run(ctx: Context)(tokens: Stream[Token]): Unit = {
-    tokens.toList foreach { t => println(s"$t(${t.position.withoutFile})") }
+    tokens.toList foreach { t =>
+      println(s"$t(${t.position.withoutFile})")
+    }
   }
 }
