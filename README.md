@@ -1,1 +1,1 @@
-# Repo which will receive the Amy compiler with extension
+# Amy compiler with extension to handle List comprehension syntax
