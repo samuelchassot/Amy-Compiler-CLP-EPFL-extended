@@ -40,8 +40,10 @@ abstract class Document {
 }
 case class Indented(content: Document) extends Document
 case class Unindented(content: Document) extends Document
-case class Stacked(docs: List[Document], emptyLines: Boolean = false) extends Document
-case class Lined(docs: List[Document], separator: Document = Raw("")) extends Document
+case class Stacked(docs: List[Document], emptyLines: Boolean = false)
+    extends Document
+case class Lined(docs: List[Document], separator: Document = Raw(""))
+    extends Document
 case class Raw(s: String) extends Document
 
 object Stacked {
