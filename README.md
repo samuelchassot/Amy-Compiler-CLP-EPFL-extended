@@ -1,6 +1,8 @@
 # Amy compiler with extensions
 
-The Amy compiler with the list comprehensions syntax handling.
+The project is a compiler for AMY, a functional language. The compiler produces web assembly.
+
+This version in extended with the list comprehensions syntax handling.
 
 You can find a runnable example of what our extension can be used to under examples/ListCompr.scala.
 
